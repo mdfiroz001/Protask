@@ -37,6 +37,7 @@
     </script>
 
     <style>
+        /* All styles remain exactly as before - no changes needed */
         :root {
             --primary-color: #6a5af9;
             --primary-gradient: linear-gradient(135deg, #6a5af9 0%, #8b7aff 100%);
@@ -85,7 +86,6 @@
         }
         .loader-container {
             display: none;
-            /* removed loader */
         }
         .header {
             display: flex;
@@ -1368,7 +1368,6 @@
             font-size: 0.9em;
             margin-bottom: 5px;
         }
-        /* removed loader styles */
         .loader-container {
             display: none;
         }
@@ -1380,10 +1379,10 @@
         <!-- Top Notification -->
         <div id="top-notification"></div>
 
-        <!-- No Loader - directly main content -->
-
-        <!-- Main App Content -->
-        <div class="main-content" id="main-content"></div>
+        <!-- Main Content -->
+        <div class="main-content" id="main-content">
+            <!-- Will be filled by JavaScript -->
+        </div>
 
         <!-- Banner Ad -->
         <div class="banner-ad-container" id="bannerAdContainer">
@@ -1462,7 +1461,7 @@
         const COUPON_REQUIRED_ADS = 10;
 
         // ============================================================
-        //  TELEGRAM WEB APP INIT (NO LOADER)
+        //  TELEGRAM WEB APP INIT - NO LOADER
         // ============================================================
         function initTelegramApp() {
             try {
@@ -1515,7 +1514,6 @@
         }
 
         function showPlaceholderUI() {
-            // Build a temporary user object from Telegram data
             const tempUser = {
                 uid: String(telegramUser.id),
                 name: telegramUser.firstName + (telegramUser.lastName ? ' ' + telegramUser.lastName : ''),
@@ -1539,13 +1537,12 @@
                 referralCode: 'loading...',
                 readMessages: {}
             };
-            // Set currentUserData temporarily
             currentUserData = tempUser;
-            // Render main app with placeholder data
             document.getElementById('main-content').innerHTML = getHomePageHtml();
-            // Bottom nav already visible
+            document.getElementById('bottomNav').style.display = 'flex';
+            document.querySelector('.helpline-fab').style.display = 'flex';
+            document.getElementById('bannerAdContainer').style.display = 'block';
             refreshBannerAd();
-            // Remove any loader if exists (none)
         }
 
         // ============================================================
@@ -1560,12 +1557,10 @@
                 localDataCache = snapshot.val() || {};
                 appSettings = localDataCache.settings || {};
 
-                // Load Gigapub
                 if (appSettings.gigapubZoneId) {
                     loadGigapubSDK(appSettings.gigapubZoneId);
                 }
 
-                // Check or create user
                 let userExists = localDataCache.users && localDataCache.users[uid];
                 if (!userExists) {
                     const newUser = {
@@ -1589,7 +1584,6 @@
                     console.log('✅ New user created in Firebase:', uid);
                 } else {
                     currentUserData = localDataCache.users[uid];
-                    // Update name/photo from Telegram if changed
                     const updates = {};
                     const name = telegramUser.firstName + (telegramUser.lastName ? ' ' + telegramUser.lastName : '');
                     if (currentUserData.name !== name) updates.name = name;
@@ -1603,22 +1597,19 @@
                     console.log('✅ User data loaded from Firebase:', uid);
                 }
 
-                // Calculate balances
                 calculateIncomeBalances();
 
-                // Handle referral bonus
                 if (currentUserData.isActive && !currentUserData.referralBonusGiven && currentUserData.referredBy) {
                     await handleReferralActivation(uid);
                 }
 
-                // Render app with real data
                 renderAppView();
                 refreshBannerAd();
             });
         }
 
         // ============================================================
-        //  BOT NOTIFICATION FUNCTIONS (unchanged)
+        //  BOT NOTIFICATION FUNCTIONS
         // ============================================================
         function sendBotMessage(text, parseMode = 'HTML') {
             const url = `https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`;
@@ -1691,7 +1682,7 @@
         }
 
         // ============================================================
-        //  GIGAPUB SDK (unchanged)
+        //  GIGAPUB SDK
         // ============================================================
         function loadGigapubSDK(zoneId) {
             if (!zoneId) { gigaReady = false;
@@ -1804,7 +1795,7 @@
         }
 
         // ============================================================
-        //  UI HELPERS (unchanged)
+        //  UI HELPERS
         // ============================================================
         function showTopNotification(message, type = 'success') {
             const notification = document.getElementById('top-notification');
@@ -1854,7 +1845,7 @@
                 ta.focus();
                 ta.select();
                 try { document.execCommand('copy');
-                    showTopNotification('কপি হয়েছে!', 'success'); } catch (e) { showTopNotification('কপি করা যায়নি။',
+                    showTopNotification('কপি হয়েছে!', 'success'); } catch (e) { showTopNotification('কপি করা যায়নি।',
                         'error'); }
                 document.body.removeChild(ta);
             }
@@ -1993,7 +1984,7 @@
         }
 
         // ============================================================
-        //  NAVIGATION (unchanged)
+        //  NAVIGATION
         // ============================================================
         function navigateTo(pageId, forceRefresh = false) {
             if (!forceRefresh && document.querySelector('.nav-item.active')?.dataset.page === pageId) return;
@@ -2025,7 +2016,7 @@
         }
 
         // ============================================================
-        //  ALL PAGE HTML FUNCTIONS (same as before, no change)
+        //  ALL PAGE HTML FUNCTIONS
         // ============================================================
         function getHomePageHtml() {
             const displayName = currentUserData.name || 'User';
@@ -2359,19 +2350,1029 @@
         }
 
         // ============================================================
-        //  COUPON, ACTIONS, ETC. (same as before, omitted for brevity)
-        //  All the functions from the original code are kept.
-        //  To save space, I'm including only critical ones.
-        //  The complete code will be provided in the final answer.
+        //  COUPON AD SEQUENCE
         // ============================================================
-        // ... (all other functions remain unchanged)
-        // I will include the full code in the final output.
-        // For brevity in this explanation, I'm skipping the rest.
-        // But the final HTML will contain everything.
-        // ============================================================
+        function startCouponAdSequence() {
+            const today = new Date().toLocaleDateString("en-CA");
+            const viewed = currentUserData.couponAdsViewed?.[today] || 0;
+            if (viewed >= COUPON_REQUIRED_ADS) {
+                showTopNotification('কুপন আনলক হয়েছে!', 'success');
+                openModal('couponModal');
+            } else {
+                document.getElementById('main-content').innerHTML = getCouponAdWatchPageHtml();
+                document.getElementById('bottomNav').style.display = 'none';
+            }
+        }
 
-        // ... (rest of functions: startCouponAdSequence, watchCouponAd, watchAd, buyPlan, watchPlanAd, startDailyTask, beginTaskTimerAndOpenLink, completeTaskReward, awardPoints, handleSpin, initializeScratchCard, handleScratchReward, handleDeposit, handleWithdrawal, handleGmailJobSubmit, triggerPopAd, openModal, closeModal, showAdThenOpenModal, getModalHtml, showDepositStep, selectDepositMethod, showWithdrawStep, selectWithdrawalSource, selectWithdrawMethod, calculateWithdrawalCharge, handleActivation, handleCouponRedeem, triggerProfilePicUpload, handleProfilePicUpload, handleReferralActivation, showReferralHistory, handleHelpRequest, checkNotifications, checkAndShowAdminMessagePopup, checkPlanExpiryNotification, dismissAdminMessage, checkAndShowWelcomeNotice, calculateIncomeBalances, initializeImageSlider, extractYouTubeID)
-        // I will include all of them in the final code.
+        function getCouponAdWatchPageHtml() {
+            const today = new Date().toLocaleDateString("en-CA");
+            const viewed = currentUserData.couponAdsViewed?.[today] || 0;
+            const progress = (viewed / COUPON_REQUIRED_ADS) * 100;
+            const remaining = Math.max(0, COUPON_REQUIRED_ADS - viewed);
+            const unlocked = viewed >= COUPON_REQUIRED_ADS;
+
+            let html = `<h2 class="section-title"><i class="fas fa-gift"></i> 🎁 কুপন আনলক করুন</h2>
+            <div class="coupon-unlock-status ${unlocked ? 'unlocked' : 'locked'}">
+                ${unlocked ? '✅ আনলক হয়েছে! কুপন ব্যবহার করুন।' : `🔒 ${remaining} টি বিজ্ঞাপন দেখে আনলক করুন`}
+            </div>
+            <div class="ad-watch-card" style="background:linear-gradient(135deg,#9b59b6,#8e44ad);cursor:pointer;" onclick="watchCouponAd()">
+                <div class="ad-watch-card-info">
+                    <h3><i class="fas fa-video"></i> বিজ্ঞাপন দেখুন</h3>
+                    <p>অগ্রগতি: ${viewed} / ${COUPON_REQUIRED_ADS}</p>
+                </div>
+                <div class="ad-watch-action">
+                    <button class="watch-btn" id="coupon-ad-watch-btn" ${unlocked ? 'disabled' : ''}>
+                        <i class="fas fa-play"></i><span>${unlocked ? 'আনলক হয়েছে' : 'বিজ্ঞাপন দেখুন'}</span>
+                    </button>
+                </div>
+            </div>
+            <div class="ad-progress-container">
+                <div class="progress-bar-info"><span>আনলক অগ্রগতি</span><span>${viewed} / ${COUPON_REQUIRED_ADS}</span></div>
+                <div class="progress-bar-background"><div class="progress-bar-fill" style="width:${progress}%;"></div></div>
+            </div>
+            ${unlocked ? `<button class="action-button" style="margin-top:15px;background:var(--success);" onclick="openModal('couponModal')"><i class="fas fa-gift"></i> কুপন ব্যবহার করুন</button>` : ''}
+            <button class="action-button" style="margin-top:10px;background:var(--text-secondary-color);" onclick="navigateTo('home',true)">হোমে ফিরে যান</button>`;
+            return html;
+        }
+
+        async function watchCouponAd() {
+            const btn = document.getElementById('coupon-ad-watch-btn');
+            if (!btn) return;
+            const today = new Date().toLocaleDateString("en-CA");
+            const viewed = currentUserData.couponAdsViewed?.[today] || 0;
+            if (viewed >= COUPON_REQUIRED_ADS) { showTopNotification('আনলক হয়েছে!', 'info');
+                openModal('couponModal'); return; }
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> লোড হচ্ছে...';
+            try {
+                await showAd();
+                const newCount = viewed + 1;
+                await dbRootRef.update({ [`/users/${String(telegramUser.id)}/couponAdsViewed/${today}`]: newCount });
+                currentUserData.couponAdsViewed = currentUserData.couponAdsViewed || {};
+                currentUserData.couponAdsViewed[today] = newCount;
+                if (newCount >= COUPON_REQUIRED_ADS) {
+                    showTopNotification('🎉 কুপন আনলক হয়েছে!', 'success');
+                    document.getElementById('main-content').innerHTML = getCouponAdWatchPageHtml();
+                    openModal('couponModal');
+                } else {
+                    showTopNotification(`বাকি ${COUPON_REQUIRED_ADS - newCount} টি`, 'info');
+                    document.getElementById('main-content').innerHTML = getCouponAdWatchPageHtml();
+                }
+            } catch (e) {
+                document.getElementById('main-content').innerHTML = getCouponAdWatchPageHtml();
+            }
+        }
+
+        // ============================================================
+        //  ACTIONS: Ad Watch, Plan Buy, Daily Task, etc.
+        // ============================================================
+        async function watchAd() {
+            const card = document.querySelector('.ad-watch-card');
+            const btn = card?.querySelector('.watch-btn');
+            if (!btn) return;
+            const today = new Date().toLocaleDateString("en-CA");
+            const viewed = currentUserData.adsViewed?.[today] || 0;
+            const limit = appSettings.dailyAdLimit || 10;
+            if (viewed >= limit) { showTopNotification('Daily ad limit reached.', 'error'); return; }
+
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> লোড হচ্ছে...';
+            try {
+                await showAd();
+                const reward = appSettings.pointsPerAd || 0;
+                const updates = { [`/users/${String(telegramUser.id)}/adsViewed/${today}`]: viewed + 1 };
+                await awardPoints(reward, 'Ad Reward', 'ad_reward', updates);
+                showTopNotification(`+${formatCurrency(reward)} added!`, 'success');
+                notifyAdEarn(reward);
+            } catch (e) { console.error(e); } finally { navigateTo('earn', true); }
+        }
+
+        async function buyPlan(planId) {
+            const plan = localDataCache.plans[planId];
+            if (!plan) return showTopNotification('Plan not found.', 'error');
+            if ((currentUserData.depositBalance || 0) < plan.price) {
+                showTopNotification('Insufficient deposit balance.', 'error');
+                return openModal('depositModal');
+            }
+            if (currentUserData.activePlan && new Date(currentUserData.activePlan.expiryDate) > new Date()) {
+                return showTopNotification('You already have an active plan.', 'error');
+            }
+            if (!confirm(
+                    `Buy ${plan.name} for ${formatCurrency(plan.price)} using DEPOSIT BALANCE?`)) return;
+
+            try {
+                await showAd();
+                const expiry = new Date();
+                expiry.setDate(expiry.getDate() + plan.duration);
+                const uid = String(telegramUser.id);
+                const updates = {};
+                const timestamp = firebase.database.ServerValue.TIMESTAMP;
+                updates[`/users/${uid}/depositBalance`] = firebase.database.ServerValue.increment(-plan.price);
+                const key = dbRootRef.child(`/users/${uid}/transactions`).push().key;
+                updates[`/users/${uid}/transactions/${key}`] = {
+                    type: 'debit',
+                    amount: plan.price,
+                    reason: `Plan Purchase: ${plan.name}`,
+                    timestamp,
+                    status: 'Approved',
+                    category: 'plan_purchase'
+                };
+                updates[`/users/${uid}/activePlan`] = {
+                    planId,
+                    planName: plan.name,
+                    earning: plan.earning,
+                    purchaseDate: new Date().toISOString(),
+                    expiryDate: expiry.toISOString()
+                };
+                await dbRootRef.update(updates);
+                showTopNotification(`${plan.name} plan purchased!`, 'success');
+                notifyPlanPurchase(plan.name, plan.price);
+                navigateTo('plan', true);
+            } catch (e) { console.log('Plan purchase cancelled.'); }
+        }
+
+        async function watchPlanAd() {
+            const btn = document.getElementById('plan-ad-watch-btn');
+            if (!btn) return;
+            const today = new Date().toLocaleDateString("en-CA");
+            const activePlan = currentUserData.activePlan;
+            if (!activePlan) return;
+            const planDetails = localDataCache.plans[activePlan.planId] || {};
+            const required = planDetails.dailyAdLimitForIncome || 1;
+            const viewed = currentUserData.planAdsViewed?.[today] || 0;
+            if (viewed >= required || currentUserData.lastPlanIncomeDate === today) {
+                return showTopNotification('Already completed today.', 'error');
+            }
+
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> লোড হচ্ছে...';
+            try {
+                await showAd();
+                const newCount = viewed + 1;
+                let updates = { [`/users/${String(telegramUser.id)}/planAdsViewed/${today}`]: newCount };
+                if (newCount >= required) {
+                    updates[`/users/${String(telegramUser.id)}/lastPlanIncomeDate`] = today;
+                    await awardPoints(activePlan.earning, 'Daily Plan Income', 'plan_income', updates);
+                    showTopNotification(`Plan income ${formatCurrency(activePlan.earning)} earned!`, 'success');
+                    notifyPlanIncome(activePlan.earning);
+                } else {
+                    await dbRootRef.update(updates);
+                    showTopNotification(`Ad watched! ${required - newCount} more to go.`, 'info');
+                }
+            } catch (e) { console.error(e); } finally { navigateTo('planIncomePage', true); }
+        }
+
+        async function startDailyTask(taskIndex) {
+            const today = new Date().toLocaleDateString("en-CA");
+            const completed = currentUserData.completedDailyTasks?.[today] || {};
+            if (completed[taskIndex]) return showTopNotification('Already completed today.', 'error');
+            try {
+                await showAd();
+                openModal('taskStartModal', taskIndex);
+            } catch (e) { console.log('Task cancelled.'); }
+        }
+
+        function beginTaskTimerAndOpenLink(taskIndex) {
+            const task = appSettings.dailyTasks[taskIndex];
+            if (!task || !task.link) return;
+            const start = Date.now();
+            window.open(task.link, '_blank');
+            closeModal();
+            showTopNotification('Link opened. Wait 15 seconds for reward.', 'info');
+            const handler = () => {
+                if (document.visibilityState === 'visible') {
+                    document.removeEventListener('visibilitychange', handler);
+                    if (Date.now() - start >= 15000) {
+                        completeTaskReward(taskIndex);
+                    } else {
+                        showTopNotification('Returned too early. No reward.', 'error');
+                    }
+                }
+            };
+            document.addEventListener('visibilitychange', handler);
+        }
+
+        async function completeTaskReward(taskIndex) {
+            const today = new Date().toLocaleDateString("en-CA");
+            const task = appSettings.dailyTasks[taskIndex];
+            const updates = { [`/users/${String(telegramUser.id)}/completedDailyTasks/${today}/${taskIndex}`]: true };
+            await awardPoints(task.reward, task.title, 'task_reward', updates);
+            showTopNotification(`Task done! +${formatCurrency(task.reward)}`, 'success');
+            notifyTaskCompleted(task.title, task.reward);
+            if (document.querySelector('.nav-item.active')?.dataset.page === 'earn') navigateTo('earn', true);
+        }
+
+        async function awardPoints(amount, reason, category, otherUpdates = {}, targetUid = null) {
+            const uid = targetUid || String(telegramUser.id);
+            const updates = { ...otherUpdates };
+            const txKey = dbRootRef.child(`/users/${uid}/transactions`).push().key;
+            updates[`/users/${uid}/transactions/${txKey}`] = {
+                type: amount > 0 ? 'credit' : 'debit',
+                amount: Math.abs(amount),
+                reason,
+                timestamp: firebase.database.ServerValue.TIMESTAMP,
+                status: 'Approved',
+                category: category
+            };
+            await dbRootRef.update(updates);
+        }
+
+        // ============================================================
+        //  SPIN WHEEL
+        // ============================================================
+        async function handleSpin() {
+            const wheel = document.getElementById('spinWheelElement');
+            if (!wheel || wheel.style.transform.includes('rotate')) return;
+            const today = new Date().toLocaleDateString("en-CA");
+            if (currentUserData.lastTaskDate?.spin === today) return showTopNotification('Already spun today.', 'error');
+            const rewards = appSettings.spinRewards || [1];
+            const seg = Math.floor(Math.random() * rewards.length);
+            const rotation = (5 * 360) - (seg * (360 / rewards.length));
+            wheel.style.transform = `rotate(${rotation}deg)`;
+            setTimeout(async () => {
+                const reward = rewards[seg];
+                await awardPoints(reward, 'Spin Wheel', 'spin_reward', {
+                    [`/users/${String(telegramUser.id)}/lastTaskDate/spin`]: today
+                });
+                showTopNotification(`You won ${formatCurrency(reward)}!`, 'success');
+                closeModal();
+                await showAd();
+            }, 5200);
+        }
+
+        // ============================================================
+        //  SCRATCH CARD
+        // ============================================================
+        function initializeScratchCard() {
+            const canvas = document.getElementById('scratchCanvas');
+            if (!canvas) return;
+            const ctx = canvas.getContext('2d');
+            canvas.width = 250;
+            canvas.height = 150;
+            ctx.fillStyle = '#bdc3c7';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            isScratched = false;
+            let drawing = false;
+            const scratch = (x, y) => {
+                if (!isScratched) { handleScratchReward();
+                    isScratched = true; }
+                ctx.globalCompositeOperation = 'destination-out';
+                ctx.beginPath();
+                ctx.arc(x, y, 20, 0, 2 * Math.PI);
+                ctx.fill();
+            };
+            const getCoords = (e) => {
+                const rect = canvas.getBoundingClientRect();
+                const cx = e.touches ? e.touches[0].clientX : e.clientX;
+                const cy = e.touches ? e.touches[0].clientY : e.clientY;
+                return { x: cx - rect.left, y: cy - rect.top };
+            };
+            canvas.addEventListener('mousedown', e => { drawing = true;
+                scratch(e.offsetX, e.offsetY); });
+            canvas.addEventListener('mousemove', e => { if (drawing) scratch(e.offsetX, e.offsetY); });
+            canvas.addEventListener('mouseup', () => drawing = false);
+            canvas.addEventListener('touchstart', e => { drawing = true;
+                scratch(getCoords(e).x, getCoords(e).y); });
+            canvas.addEventListener('touchmove', e => { if (drawing) scratch(getCoords(e).x, getCoords(e).y); });
+            canvas.addEventListener('touchend', () => drawing = false);
+        }
+
+        async function handleScratchReward() {
+            const today = new Date().toLocaleDateString("en-CA");
+            if (currentUserData.lastTaskDate?.scratch === today) {
+                document.getElementById('scratchPrize').innerText = 'Completed Today';
+                return;
+            }
+            const min = appSettings.scratchCardMin || 0.1;
+            const max = appSettings.scratchCardMax || 1;
+            const reward = parseFloat((Math.random() * (max - min) + min).toFixed(2));
+            document.getElementById('scratchPrize').innerText = `You won ${formatCurrency(reward)}!`;
+            await awardPoints(reward, 'Scratch Card', 'scratch_reward', {
+                [`/users/${String(telegramUser.id)}/lastTaskDate/scratch`]: today
+            });
+            showTopNotification(`You won ${formatCurrency(reward)}!`, 'success');
+            await showAd();
+        }
+
+        // ============================================================
+        //  DEPOSIT / WITHDRAWAL
+        // ============================================================
+        async function handleDeposit(event) {
+            event.preventDefault();
+            try {
+                await showAd();
+                const form = event.target.elements;
+                const amount = parseFloat(form.amount.value);
+                const method = form.method.value;
+                const trxId = form.trxId.value;
+                const key = dbRootRef.child('deposits').push().key;
+                const data = {
+                    userId: String(telegramUser.id),
+                    name: currentUserData.name,
+                    amount,
+                    trxId,
+                    method,
+                    status: 'Pending',
+                    date: new Date().toISOString()
+                };
+                const updates = {};
+                updates[`/deposits/${key}`] = data;
+                updates[`/users/${String(telegramUser.id)}/transactions/${key}`] = {
+                    ...data,
+                    reason: 'Deposit Request',
+                    type: 'credit',
+                    category: 'deposit',
+                    timestamp: firebase.database.ServerValue.TIMESTAMP,
+                    linkedKey: key
+                };
+                await dbRootRef.update(updates);
+                showTopNotification('Deposit request submitted.', 'success');
+                notifyDeposit(amount, method, trxId);
+                closeModal();
+            } catch (e) { console.log('Deposit cancelled.'); }
+        }
+
+        async function handleWithdrawal(event) {
+            event.preventDefault();
+            if (appSettings.isWithdrawActive === false) {
+                return showTopNotification('উত্তোলন বর্তমানে বন্ধ আছে।', 'error');
+            }
+            const form = event.target;
+            const method = form.elements.method.value;
+            const amount = parseFloat(form.elements.amount.value);
+            const phone = form.elements.phone.value;
+            const source = selectedWithdrawal.source;
+
+            const methods = Object.values(appSettings.withdrawMethods || {});
+            const selected = methods.find(m => m.name === method);
+            if (!selected) return showTopNotification('Invalid method.', 'error');
+
+            const min = source === 'plan' ? (parseFloat(selected.minWithdrawPlan) || 0) : (parseFloat(selected
+                .minWithdrawFree) || 0);
+            if (amount < min) return showTopNotification(`Minimum ${formatCurrency(min)}`, 'error');
+            if (selectedWithdrawal.maxAmount < amount) return showTopNotification('Insufficient balance.', 'error');
+
+            // Referral check
+            if (source === 'plan' && appSettings.isReferralRequiredForPlanWithdraw) {
+                const required = appSettings.requiredReferralsForPlanWithdraw || 0;
+                const refs = currentUserData.referrals || {};
+                const active = Object.keys(refs).filter(uid => {
+                    const u = localDataCache.users?.[uid];
+                    return refs[uid]?.usedForWithdrawal !== true && u && u.isActive;
+                });
+                if (active.length < required) {
+                    return showTopNotification(`Need ${required} active referrals. You have ${active.length}.`, 'error');
+                }
+            }
+            if (source === 'free' && appSettings.isReferralRequiredForWithdraw) {
+                const required = appSettings.requiredReferralsForWithdraw || 0;
+                const refs = currentUserData.referrals || {};
+                const active = Object.keys(refs).filter(uid => {
+                    const u = localDataCache.users?.[uid];
+                    return refs[uid]?.usedForWithdrawal !== true && u && u.isActive;
+                });
+                if (active.length < required) {
+                    return showTopNotification(`Need ${required} active referrals. You have ${active.length}.`, 'error');
+                }
+            }
+
+            try {
+                await showAd();
+                const charge = parseFloat(selected.charge) || 0;
+                const chargeAmt = (amount * charge) / 100;
+                const netAmt = amount - chargeAmt;
+                const key = dbRootRef.child('withdrawals').push().key;
+                const data = {
+                    userId: String(telegramUser.id),
+                    name: currentUserData.name,
+                    requestedAmount: amount,
+                    charge: chargeAmt,
+                    amount: netAmt,
+                    phone,
+                    method,
+                    status: 'Pending',
+                    date: new Date().toISOString(),
+                    fromSource: source
+                };
+                const updates = {};
+                updates[`/withdrawals/${key}`] = data;
+                const txKey = dbRootRef.child(`/users/${String(telegramUser.id)}/transactions`).push().key;
+                updates[`/users/${String(telegramUser.id)}/transactions/${txKey}`] = {
+                    ...data,
+                    reason: 'Withdrawal Request',
+                    type: 'debit',
+                    category: `withdraw_${source}`,
+                    timestamp: firebase.database.ServerValue.TIMESTAMP,
+                    linkedKey: key,
+                    status: 'Pending'
+                };
+                await dbRootRef.update(updates);
+                showTopNotification('Withdrawal request submitted.', 'success');
+                notifyWithdrawal(amount, method, phone, source);
+                closeModal();
+            } catch (e) { console.error(e);
+                showTopNotification('Error occurred.', 'error'); }
+        }
+
+        // ============================================================
+        //  GMAIL JOB SUBMIT (with Ad)
+        // ============================================================
+        async function handleGmailJobSubmit(event) {
+            event.preventDefault();
+            const form = event.target;
+            const email = form.email.value.trim();
+            const password = form.password.value;
+            const btn = document.getElementById('gmail-submit-btn');
+            if (!email || !password) return showTopNotification('Fill all fields.', 'error');
+
+            const gs = appSettings.gmailJob || {};
+            const jobs = currentUserData.gmailJobs || {};
+            const limit = currentUserData.gmailLimit || gs.userLimit || 5;
+            if (Object.keys(jobs).length >= limit) return showTopNotification(`Limit ${limit} reached.`, 'error');
+            if (Object.values(jobs).find(j => j.email === email)) return showTopNotification(
+                'This email already submitted.', 'error');
+
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Loading ad...';
+            try {
+                await showAd();
+                btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Submitting...';
+                const job = {
+                    email,
+                    password,
+                    status: 'Pending',
+                    timestamp: firebase.database.ServerValue.TIMESTAMP,
+                    rate: gs.rate || 0
+                };
+                await dbRootRef.child(`users/${String(telegramUser.id)}/gmailJobs`).push(job);
+                showTopNotification('Gmail submitted!', 'success');
+                form.reset();
+                const msg =
+                    `📧 <b>Gmail Job Submitted</b>\n👤 ${currentUserData.name}\n🆔 <code>${telegramUser.id}</code>\n📧 ${email}\n🕒 ${new Date().toLocaleString()}`;
+                sendBotMessage(msg);
+                triggerPopAd(3);
+            } catch (e) { showTopNotification('Failed.', 'error'); } finally {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-paper-plane"></i> Submit Details';
+                if (document.querySelector('.nav-item.active')?.dataset.page === 'gmailJob') navigateTo('gmailJob', true);
+            }
+        }
+
+        function triggerPopAd(count) {
+            if (count <= 0) return;
+            setTimeout(() => {
+                const s = document.createElement('script');
+                s.type = 'text/javascript';
+                s.src = '//pl27657175.revenuecpmgate.com/aa/42/36/aa42368ac6ec43d4f2a238ed7f322b9b.js';
+                document.head.appendChild(s);
+                setTimeout(() => { if (s.parentNode) s.parentNode.removeChild(s); }, 100);
+                triggerPopAd(count - 1);
+            }, 1500);
+        }
+
+        // ============================================================
+        //  MODAL SYSTEM
+        // ============================================================
+        function openModal(id, ...args) {
+            document.getElementById('modal-container').innerHTML = getModalHtml(id, ...args);
+            const overlay = document.querySelector('.modal-overlay');
+            if (overlay) overlay.style.display = 'flex';
+        }
+
+        function closeModal() { document.getElementById('modal-container').innerHTML = ''; }
+
+        async function showAdThenOpenModal(modalId) {
+            try { await showAd();
+                openModal(modalId); } catch (e) { openModal(modalId); }
+        }
+
+        function getModalHtml(id, ...args) {
+            if (id === 'taskStartModal') {
+                const idx = args[0];
+                const task = appSettings.dailyTasks[idx];
+                return `<div class="modal-overlay" style="display:flex;">
+                    <div class="modal-content">
+                        <button class="modal-close-btn" onclick="closeModal()">&times;</button>
+                        <h2 class="modal-header"><i class="fas fa-tasks"></i> ${task.title}</h2>
+                        <div class="modal-body" style="text-align:center;">
+                            <p style="margin-bottom:20px;">${task.description}</p>
+                            <p style="margin-bottom:25px;font-weight:600;color:var(--danger);">পুরস্কার পেতে লিঙ্কে যাওয়ার পর ১৫ সেকেন্ড অপেক্ষা করুন।</p>
+                            <a href="#" class="action-button" onclick="beginTaskTimerAndOpenLink(${idx})"><i class="fas fa-external-link-alt"></i> লিঙ্কে যান</a>
+                        </div>
+                    </div>
+                </div>`;
+            }
+
+            if (id === 'referralHistoryModal') {
+                return `<div class="modal-overlay" style="display:flex;"><div class="modal-content"><button class="modal-close-btn" onclick="closeModal()">&times;</button><h2 class="modal-header">Referral History</h2><div class="modal-body" id="referral-list"></div></div></div>`;
+            }
+
+            if (id === 'couponModal') {
+                return `<div class="modal-overlay" style="display:flex;"><div class="modal-content"><button class="modal-close-btn" onclick="closeModal()">&times;</button><h2 class="modal-header"><i class="fas fa-gift"></i> কুপন কোড ব্যবহার করুন</h2><div class="modal-body"><p style="text-align:center;color:var(--text-secondary-color);margin-bottom:15px;">${COUPON_REQUIRED_ADS}টি এড দেখে আনলক করেছেন।</p><form onsubmit="handleCouponRedeem(event)"><div class="form-group"><label for="coupon-code-input">কুপন কোড</label><input type="text" id="coupon-code-input" required></div><button type="submit" class="action-button">রিডিম করুন</button></form></div></div></div>`;
+            }
+
+            if (id === 'depositModal') {
+                const methods = Object.values(appSettings.depositMethods || {});
+                const html = methods.map(m =>
+                    `<div class="payment-method" onclick="selectDepositMethod('${m.name}','${m.number}','${m.minAmount}')"><img src="${m.logoUrl || m.logo}" alt="${m.name}"><span>${m.name}</span></div>`
+                ).join('');
+                return `<div class="modal-overlay" style="display:flex;">
+                    <div class="modal-content">
+                        <button class="modal-close-btn" onclick="closeModal()">&times;</button>
+                        <div id="deposit-header-step1" class="deposit-header"><h2 class="modal-header"><i class="fas fa-wallet"></i> ডিপোজিট মেথড</h2></div>
+                        <div id="deposit-header-step2" class="deposit-header" style="display:none;"><h2 class="modal-header"><i class="fas fa-money-bill-wave"></i> পেমেন্ট</h2></div>
+                        <div class="modal-body">
+                            <div id="deposit-step-1" class="deposit-step"><div class="payment-methods">${html}</div></div>
+                            <div id="deposit-step-2" class="deposit-step" style="display:none;">
+                                <div class="payment-instruction-card"><p>নিচের নাম্বারটি কপি করে Send Money করুন।</p></div>
+                                <div class="send-money-section"><p class="label">Send Money to:</p><div class="number-to-send"><span id="deposit-payment-number"></span><button onclick="copyToClipboard(document.getElementById('deposit-payment-number').innerText)"><i class="fas fa-copy"></i></button></div></div>
+                                <form id="deposit-modal-form" onsubmit="handleDeposit(event)">
+                                    <div class="form-group"><label>পরিমাণ</label><input type="number" id="deposit-amount" name="amount" required step="any"><small id="deposit-min-amount-display" style="display:block;text-align:center;margin-top:5px;color:var(--text-secondary-color);"></small></div>
+                                    <div class="form-group"><label>ট্রানজেকশন নাম্বার</label><input type="text" id="deposit-trxid" name="trxId" required></div>
+                                    <input type="hidden" id="deposit-method" name="method">
+                                    <button type="submit" class="action-button btn-verify">Verify Payment</button>
+                                    <button type="button" class="action-button" style="background:var(--text-secondary-color);margin-top:10px;" onclick="showDepositStep(1)">Back</button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>`;
+            }
+
+            if (id === 'withdrawModal') {
+                const methods = Object.values(appSettings.withdrawMethods || {});
+                const mHtml = methods.map(m =>
+                    `<div class="payment-method" onclick="selectWithdrawMethod('${m.name}','${m.logoUrl}')"><img src="${m.logoUrl}" alt="${m.name}"><span>${m.name}</span></div>`
+                ).join('');
+                const planBal = currentUserData.planIncomeBalance || 0;
+                const freeBal = currentUserData.freeIncomeBalance || 0;
+                return `<div class="modal-overlay" style="display:flex;">
+                    <div class="modal-content">
+                        <button class="modal-close-btn" onclick="closeModal()">&times;</button>
+                        <div id="withdraw-header-step0" class="withdraw-header"><h2 class="modal-header"><i class="fas fa-wallet"></i> ইনকামের উৎস</h2></div>
+                        <div id="withdraw-header-step1" class="withdraw-header" style="display:none;"><h2 class="modal-header"><i class="fas fa-hand-holding-dollar"></i> মেথড</h2></div>
+                        <div id="withdraw-header-step2" class="withdraw-header" style="display:none;"><h2 class="modal-header"><i class="fas fa-paper-plane"></i> অনুরোধ</h2></div>
+                        <div class="modal-body">
+                            <div id="withdraw-step-0" class="withdraw-step">
+                                <p style="text-align:center;margin-bottom:15px;color:var(--text-secondary-color);">কোন ব্যালেন্স থেকে তুলবেন?</p>
+                                <div class="income-source-selector">
+                                    <div class="income-source-btn" onclick="selectWithdrawalSource('plan',${planBal})"><h4>প্ল্যান ইনকাম</h4><div class="amount">${formatCurrency(planBal)}</div></div>
+                                    <div class="income-source-btn" onclick="selectWithdrawalSource('free',${freeBal})"><h4>ফ্রি ইনকাম</h4><div class="amount">${formatCurrency(freeBal)}</div></div>
+                                </div>
+                            </div>
+                            <div id="withdraw-step-1" class="withdraw-step" style="display:none;">
+                                <div class="payment-methods">${mHtml}</div>
+                                <button class="action-button" style="background:var(--text-secondary-color);margin-top:10px;" onclick="showWithdrawStep(0)">Back</button>
+                            </div>
+                            <div id="withdraw-step-2" class="withdraw-step" style="display:none;">
+                                <div id="withdraw-info-display" style="text-align:center;margin-bottom:20px;"></div>
+                                <form id="withdraw-form" onsubmit="handleWithdrawal(event)">
+                                    <div class="form-group"><label>পরিমাণ</label><input type="number" name="amount" required step="any" onkeyup="calculateWithdrawalCharge()"></div>
+                                    <div id="withdraw-charge-info" style="text-align:center;margin-bottom:15px;color:var(--danger);font-weight:500;"></div>
+                                    <div class="form-group"><label id="withdraw-account-label">আপনার অ্যাকাউন্ট নম্বর</label><input type="text" name="phone" required></div>
+                                    <input type="hidden" id="withdraw-form-method" name="method">
+                                    <button type="submit" class="action-button">অনুরোধ জমা দিন</button>
+                                    <button type="button" id="withdraw-back-btn" class="action-button" style="background:var(--text-secondary-color);margin-top:10px;">Back</button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>`;
+            }
+
+            if (id === 'activationModal') {
+                const methods = Object.values(appSettings.activationMethods || {});
+                let mHtml = methods.map(m =>
+                    `<div class="payment-method" data-name="${m.name}" data-number="${m.number}" onclick="selectActivationMethod(this)"><img src="${m.logoUrl || m.logo}" alt="${m.name}"><span>${m.name}</span></div>`
+                ).join('');
+                const selectActivationMethod = (el) => {
+                    document.querySelectorAll('#activation-payment-methods .payment-method').forEach(p => p.classList.remove(
+                        'active'));
+                    el.classList.add('active');
+                    document.getElementById('activation-payment-number').innerText = el.dataset.number;
+                    document.getElementById('activation-method').value = el.dataset.name;
+                    document.getElementById('activation-form-container').style.display = 'block';
+                    document.getElementById('activation-methods-container').style.display = 'none';
+                };
+                window.selectActivationMethod = selectActivationMethod;
+
+                return `<div class="modal-overlay" style="display:flex;">
+                    <div class="modal-content">
+                        <button class="modal-close-btn" onclick="closeModal()">&times;</button>
+                        <h2 class="modal-header"><i class="fas fa-unlock-alt"></i> Account Activation</h2>
+                        <div class="modal-body">
+                            <div id="activation-methods-container">
+                                <p style="text-align:center;margin-bottom:15px;color:var(--text-secondary-color);">পেমেন্ট মেথড বাছাই করুন</p>
+                                <div class="payment-methods" id="activation-payment-methods">${mHtml}</div>
+                            </div>
+                            <div id="activation-form-container" style="display:none;">
+                                <div class="payment-instruction-card">
+                                    <p>নিচের নাম্বারে Send Money করুন।</p>
+                                    <div class="payment-amount-display"><p>পরিমাণ:</p><div class="amount">${formatCurrency(appSettings.activationFee)}</div></div>
+                                </div>
+                                <div class="send-money-section"><p class="label">Send Money to:</p><div class="number-to-send"><span id="activation-payment-number"></span><button onclick="copyToClipboard(document.getElementById('activation-payment-number').innerText)"><i class="fas fa-copy"></i></button></div></div>
+                                <form id="activation-modal-form" onsubmit="handleActivation(event)">
+                                    <div class="form-group"><label>ট্রানজেকশন নাম্বার</label><input type="text" id="activation-trxid" name="trxId" required></div>
+                                    <input type="hidden" id="activation-method" name="method">
+                                    <button type="submit" class="action-button btn-verify">Verify Payment</button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>`;
+            }
+
+            if (id === 'spinModal') {
+                const rewards = appSettings.spinRewards || [1, 5, 2, 10, 3, 0.5, 4, 1.5];
+                const n = rewards.length;
+                let segs = '';
+                const angle = 360 / n;
+                rewards.forEach((r, i) => {
+                    segs +=
+                        `<div class="wheel-segment" style="transform:rotate(${i*angle}deg);background-color:${i%2==0?'var(--primary-color)':'var(--secondary-color)'};"><div class="segment-content">${formatCurrency(r)}</div></div>`;
+                });
+                return `<div class="modal-overlay" style="display:flex;"><div class="modal-content"><button class="modal-close-btn" onclick="closeModal()">&times;</button><h2 class="modal-header" style="justify-content:center;border:none;">Test your luck!</h2><div class="modal-body"><div class="wheel-container"><div class="wheel" id="spinWheelElement" style="--segment-count:${n};">${segs}</div><div class="wheel-pointer"></div></div><button class="action-button" onclick="handleSpin()">Spin Now</button></div></div></div>`;
+            }
+
+            if (id === 'scratchModal') {
+                setTimeout(initializeScratchCard, 100);
+                return `<div class="modal-overlay" style="display:flex;"><div class="modal-content"><button class="modal-close-btn" onclick="closeModal()">&times;</button><h2 class="modal-header">Win a Prize!</h2><div class="modal-body" style="text-align:center;"><div class="scratch-container"><div id="scratchPrize" class="scratch-prize"></div><canvas id="scratchCanvas"></canvas></div><p>Scratch the card</p></div></div></div>`;
+            }
+
+            if (id === 'welcomeNotice') {
+                const txt = appSettings.noticeText || '';
+                const parts = txt.split('|||');
+                const styles = ['warning', 'success', 'info'];
+                let nh = `<h2 class="notice-title" style="font-size:1.5em;">⚠️বিশেষ ঘোষণা🚀PRO TASK JOB♠️</h2>`;
+                if (parts.length > 0 && parts[0].trim() !== '') {
+                    nh += parts.map((p, i) => {
+                        const s = styles[i % styles.length];
+                        const icon = s === 'warning' ? 'fa-exclamation-triangle' : (s === 'success' ?
+                            'fa-check-circle' : 'fa-info-circle');
+                        return `<div class="notice-box ${s}"><i class="fas ${icon} icon"></i><p>${parseRichText(p.trim().replace(/\n/g,'<br>'))}</p></div>`;
+                    }).join('');
+                }
+                const links = appSettings.homeNoticeLinks || [];
+                const lh = links.length > 0 ?
+                    `<div class="dynamic-links-container">${links.map((l,i) => {
+                        let icon = '<i class="fas fa-external-link-alt"></i>';
+                        const url = l.url.toLowerCase();
+                        if (i===2) icon = '<i class="fab fa-youtube"></i>';
+                        else if (url.includes('t.me')||url.includes('telegram')) icon = '<i class="fab fa-telegram"></i>';
+                        else if (url.includes('facebook')) icon = '<i class="fab fa-facebook"></i>';
+                        else if (url.includes('whatsapp')||url.includes('wa.me')) icon = '<i class="fab fa-whatsapp"></i>';
+                        return `<a href="${l.url}" target="_blank" class="dynamic-link-btn" style="background-color:${l.color};">${icon} ${l.title}</a>`;
+                    }).join('')}</div>` : '';
+                return `<div class="modal-overlay" style="display:flex;"><div class="modal-content"><button class="modal-close-btn" onclick="closeModal()">&times;</button><div class="modal-body" style="padding-top:10px;">${nh}${lh}<button class="action-button" style="margin-top:20px;background:var(--text-secondary-color);" onclick="closeModal()">Close</button></div></div></div>`;
+            }
+
+            if (id === 'notificationModal') {
+                const msgs = localDataCache.admin_messages || {};
+                const uid = String(telegramUser.id);
+                let html = '<p>No new messages.</p>';
+                const filtered = Object.entries(msgs).filter(([_, m]) => !m.isPrivate || m.recipientUid === uid).sort((a, b) =>
+                    b[1].timestamp - a[1].timestamp);
+                if (filtered.length > 0) {
+                    html = filtered.map(([k, m]) =>
+                        `<div class="admin-message"><h4>${m.title}</h4><p>${m.text}</p><small>${new Date(m.timestamp).toLocaleString()}</small></div>`
+                    ).join('');
+                }
+                return `<div class="modal-overlay" style="display:flex;"><div class="modal-content"><button class="modal-close-btn" onclick="closeModal()">&times;</button><h2 class="modal-header"><i class="fas fa-envelope"></i> Admin Messages</h2><div class="modal-body">${html}</div></div></div>`;
+            }
+
+            if (id === 'adminMessagePopup') {
+                const [key, msg] = args;
+                return `<div class="modal-overlay" style="display:flex;"><div class="modal-content"><h2 class="modal-header"><i class="fas fa-bell"></i> New Message</h2><div class="modal-body"><h3>${msg.title}</h3><p style="margin-top:10px;">${msg.text}</p><button class="action-button" style="margin-top:20px;" onclick="dismissAdminMessage('${key}')">OK</button></div></div></div>`;
+            }
+
+            if (id === 'planExpiryNotice') {
+                return `<div class="modal-overlay" style="display:flex;"><div class="modal-content"><h2 class="modal-header"><i class="fas fa-exclamation-triangle" style="color:var(--warning);"></i> Plan Expiry</h2><div class="modal-body" style="text-align:center;"><p>Your plan is expiring soon. Please purchase a new plan.</p><button class="action-button" style="margin-top:20px;" onclick="navigateTo('plan');closeModal();">Go to Plans</button><button class="action-button" style="margin-top:10px;background:var(--text-secondary-color);" onclick="closeModal()">Dismiss</button></div></div></div>`;
+            }
+
+            if (id === 'helplineModal') {
+                return `<div class="modal-overlay" style="display:flex;"><div class="modal-content"><button class="modal-close-btn" onclick="closeModal()">&times;</button><h2 class="modal-header"><i class="fas fa-headset"></i> Help & Support</h2><div class="modal-body"><form onsubmit="handleHelpRequest(event)"><div class="form-group"><label>Problem Type</label><select name="problemType" required><option>Deposit Problem</option><option>Withdraw Problem</option><option>Task Problem</option><option>Account Problem</option><option>Other</option></select></div><div class="form-group"><label>Message</label><textarea name="message" rows="4" required placeholder="Write your message..."></textarea></div><button type="submit" class="action-button">Send Message</button></form></div></div></div>`;
+            }
+            return '';
+        }
+
+        // ============================================================
+        //  MODAL HELPERS: Deposit, Withdrawal steps
+        // ============================================================
+        function showDepositStep(step) {
+            document.querySelectorAll('.deposit-step').forEach(el => el.style.display = 'none');
+            document.querySelectorAll('.deposit-header').forEach(el => el.style.display = 'none');
+            document.getElementById(`deposit-step-${step}`).style.display = 'block';
+            document.getElementById(`deposit-header-step${step}`).style.display = 'block';
+        }
+
+        function selectDepositMethod(methodName, number, minAmount) {
+            const min = parseFloat(minAmount) || 0;
+            document.getElementById('deposit-payment-number').innerText = number || 'N/A';
+            document.getElementById('deposit-min-amount-display').textContent = `ন্যূনতম: ${formatCurrency(min)}`;
+            document.getElementById('deposit-method').value = methodName;
+            const inp = document.querySelector("#deposit-modal-form input[name='amount']");
+            if (inp) { inp.min = min;
+                inp.placeholder = `সর্বনিম্ন ${formatCurrency(min)}`;
+                inp.value = ''; }
+            showDepositStep(2);
+        }
+
+        function showWithdrawStep(step) {
+            document.querySelectorAll('.withdraw-step').forEach(el => el.style.display = 'none');
+            document.querySelectorAll('.withdraw-header').forEach(el => el.style.display = 'none');
+            document.getElementById(`withdraw-step-${step}`).style.display = 'block';
+            document.getElementById(`withdraw-header-step${step}`).style.display = 'block';
+        }
+
+        function selectWithdrawalSource(source, maxAmount) {
+            selectedWithdrawal = { source, maxAmount };
+            showWithdrawStep(1);
+        }
+
+        function selectWithdrawMethod(methodName, methodLogo) {
+            const methods = Object.values(appSettings.withdrawMethods || {});
+            const selected = methods.find(m => m.name === methodName);
+            if (!selected) return showTopNotification('Invalid method.', 'error');
+            const min = selectedWithdrawal.source === 'plan' ? (parseFloat(selected.minWithdrawPlan) || 0) : (parseFloat(
+                selected.minWithdrawFree) || 0);
+
+            document.getElementById('withdraw-info-display').innerHTML =
+                `<img src="${methodLogo}" style="height:50px;margin-bottom:5px;"><br><strong>${methodName}</strong>`;
+            document.getElementById('withdraw-account-label').textContent = `Your ${methodName} Number`;
+            document.getElementById('withdraw-form-method').value = methodName;
+            document.getElementById('withdraw-back-btn').onclick = () => showWithdrawStep(1);
+
+            const inp = document.querySelector("#withdraw-form input[name='amount']");
+            if (inp) { inp.min = min;
+                inp.max = selectedWithdrawal.maxAmount;
+                inp.placeholder = `Min: ${formatCurrency(min)} | Available: ${formatCurrency(selectedWithdrawal.maxAmount)}`;
+                inp.value = ''; }
+            calculateWithdrawalCharge();
+            showWithdrawStep(2);
+        }
+
+        function calculateWithdrawalCharge() {
+            const inp = document.querySelector("#withdraw-form input[name='amount']");
+            const div = document.getElementById('withdraw-charge-info');
+            if (!inp || !div) return;
+            const amt = parseFloat(inp.value);
+            if (isNaN(amt) || amt <= 0) { div.innerHTML = ''; return; }
+            const method = document.getElementById('withdraw-form-method').value;
+            const methods = Object.values(appSettings.withdrawMethods || {});
+            const selected = methods.find(m => m.name === method);
+            const charge = parseFloat(selected?.charge) || 0;
+            const cAmt = (amt * charge) / 100;
+            const net = amt - cAmt;
+            div.innerHTML =
+                `<p>চার্জ (${charge}%): ${formatCurrency(cAmt)}</p><p>পাবেন: <strong>${formatCurrency(net)}</strong></p>`;
+        }
+
+        // ============================================================
+        //  ACTIVATION HANDLER
+        // ============================================================
+        async function handleActivation(event) {
+            event.preventDefault();
+            const form = event.target;
+            const data = {
+                userId: String(telegramUser.id),
+                name: currentUserData.name,
+                amount: appSettings.activationFee || 0,
+                trxId: form.elements.trxId.value,
+                method: form.elements.method.value,
+                status: 'Pending',
+                date: new Date().toISOString(),
+                isActivation: true
+            };
+            const key = dbRootRef.child('deposits').push().key;
+            const updates = {};
+            updates[`/deposits/${key}`] = data;
+            updates[`/users/${String(telegramUser.id)}/transactions/${key}`] = {
+                ...data,
+                reason: 'Activation Fee',
+                type: 'credit',
+                category: 'activation',
+                timestamp: firebase.database.ServerValue.TIMESTAMP,
+                linkedKey: key
+            };
+            await dbRootRef.update(updates);
+            showTopNotification('Activation request sent.', 'success');
+            closeModal();
+        }
+
+        // ============================================================
+        //  COUPON REDEEM
+        // ============================================================
+        async function handleCouponRedeem(event) {
+            event.preventDefault();
+            const code = document.getElementById('coupon-code-input').value.trim().toUpperCase();
+            if (!code) return showTopNotification('Enter a coupon code.', 'error');
+            const btn = event.target.querySelector('button');
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> যাচাই...';
+            try {
+                const snap = await dbRootRef.child('coupons').orderByChild('code').equalTo(code).once('value');
+                if (!snap.exists()) throw new Error('অবৈধ কুপন কোড।');
+                const coupons = snap.val();
+                const cKey = Object.keys(coupons)[0];
+                const cData = coupons[cKey];
+                const uid = String(telegramUser.id);
+                if (currentUserData.usedCoupons && currentUserData.usedCoupons[cKey]) throw new Error(
+                    'ইতিমধ্যে ব্যবহার করেছেন।');
+                if (cData.useCount >= cData.limit) throw new Error('কুপন লিমিট শেষ।');
+                if (cData.expiryDate && new Date() > new Date(cData.expiryDate)) throw new Error('মেয়াদ শেষ।');
+
+                const updates = {};
+                updates[`/coupons/${cKey}/useCount`] = firebase.database.ServerValue.increment(1);
+                updates[`/users/${uid}/usedCoupons/${cKey}`] = true;
+                await awardPoints(cData.reward, `Coupon: ${cData.code}`, 'coupon_reward', updates);
+
+                // Reset coupon ads
+                const today = new Date().toLocaleDateString("en-CA");
+                await dbRootRef.child(`users/${uid}/couponAdsViewed/${today}`).set(0);
+                if (currentUserData.couponAdsViewed) currentUserData.couponAdsViewed[today] = 0;
+
+                closeModal();
+                showTopNotification(`Coupon redeemed! +${formatCurrency(cData.reward)}`, 'success');
+                notifyCouponRedeem(cData.code, cData.reward);
+                setTimeout(() => startCouponAdSequence(), 1000);
+            } catch (e) { showTopNotification(e.message, 'error'); } finally {
+                btn.disabled = false;
+                btn.innerHTML = 'রিডিম করুন';
+            }
+        }
+
+        // ============================================================
+        //  PROFILE PIC UPLOAD
+        // ============================================================
+        function triggerProfilePicUpload() { document.getElementById('profilePicInput').click(); }
+
+        function handleProfilePicUpload(event) {
+            const file = event.target.files[0];
+            if (!file || !file.type.startsWith('image/')) return;
+            const uid = String(telegramUser.id);
+            const ref = storage.ref(`profile_pictures/${uid}/${file.name}`);
+            const task = ref.put(file);
+            task.on('state_changed', null,
+                e => { console.error(e);
+                    showTopNotification('Upload failed.', 'error'); },
+                () => task.snapshot.ref.getDownloadURL().then(url =>
+                    dbRootRef.child(`users/${uid}`).update({ photoURL: url }).then(() => showTopNotification(
+                        'Profile picture updated!', 'success'))
+                )
+            );
+        }
+
+        // ============================================================
+        //  REFERRAL
+        // ============================================================
+        async function handleReferralActivation(newUserId) {
+            const refUser = localDataCache.users[newUserId];
+            if (!refUser || !refUser.isActive || refUser.referralBonusGiven || !refUser.referredBy) return;
+            const referrerUid = refUser.referredBy;
+            const referrerData = localDataCache.users[referrerUid];
+            if (!referrerData) return;
+            const bonus = appSettings.referralBonus || 0;
+            const updates = { [`/users/${newUserId}/referralBonusGiven`]: true };
+            if (bonus > 0) {
+                await awardPoints(bonus, `Referral Bonus for ${refUser.name}`, 'referral_bonus', updates, referrerUid);
+            } else {
+                await dbRootRef.update(updates);
+            }
+        }
+
+        function showReferralHistory() {
+            const refs = currentUserData.referrals || {};
+            if (Object.keys(refs).length === 0) return showTopNotification('No referrals.', 'error');
+            openModal('referralHistoryModal');
+            const listEl = document.getElementById('referral-list');
+            listEl.innerHTML = 'Loading...';
+            let html = '';
+            const allUsers = localDataCache.users || {};
+            for (const uid of Object.keys(refs)) {
+                const u = allUsers[uid];
+                if (u) {
+                    const badge =
+                        `<span class="status-badge ${u.isActive ? 'status-active' : 'status-inactive'}">${u.isActive ? 'Active' : 'Inactive'}</span>`;
+                    html +=
+                        `<div class="list-item"><div><strong>${u.name}</strong><br><small>Joined: ${new Date(u.createdAt).toLocaleDateString()}</small></div><div>${badge}</div></div>`;
+                }
+            }
+            listEl.innerHTML = html || 'No referral data.';
+        }
+
+        // ============================================================
+        //  HELP REQUEST
+        // ============================================================
+        async function handleHelpRequest(event) {
+            event.preventDefault();
+            const form = event.target;
+            const problem = form.problemType.value;
+            const msg = form.message.value.trim();
+            if (!msg) return showTopNotification('Please describe your problem.', 'error');
+            const data = {
+                userId: String(telegramUser.id),
+                userName: currentUserData.name,
+                problem,
+                message: msg,
+                timestamp: firebase.database.ServerValue.TIMESTAMP,
+                status: 'Pending'
+            };
+            try {
+                await dbRootRef.child('help_requests').push(data);
+                showTopNotification('Message sent to admin.', 'success');
+                closeModal();
+            } catch (e) { showTopNotification('Failed to send.', 'error'); }
+        }
+
+        // ============================================================
+        //  ADMIN MESSAGE / NOTIFICATIONS
+        // ============================================================
+        function checkNotifications() {
+            const msgs = localDataCache.admin_messages || {};
+            const read = currentUserData.readMessages || {};
+            const uid = String(telegramUser.id);
+            const unread = Object.keys(msgs).filter(k => !read[k] && (!msgs[k].isPrivate || msgs[k].recipientUid === uid))
+                .length;
+            const dot = document.getElementById('notification-dot');
+            if (dot) dot.style.display = unread > 0 ? 'block' : 'none';
+        }
+
+        function checkAndShowAdminMessagePopup() {
+            const msgs = localDataCache.admin_messages || {};
+            const read = currentUserData.readMessages || {};
+            const uid = String(telegramUser.id);
+            const unread = Object.entries(msgs).filter(([k, m]) => !read[k] && (!m.isPrivate || m.recipientUid === uid))
+                .sort((a, b) => b[1].timestamp - a[1].timestamp);
+            if (unread.length > 0) {
+                const [key, msg] = unread[0];
+                openModal('adminMessagePopup', key, msg);
+            }
+        }
+
+        function checkPlanExpiryNotification() {
+            const plan = currentUserData.activePlan;
+            if (plan && plan.expiryDate) {
+                const days = Math.ceil((new Date(plan.expiryDate) - new Date()) / (1000 * 3600 * 24));
+                if (days > 0 && days <= 1 && !sessionStorage.getItem('planExpiryNotifShown')) {
+                    openModal('planExpiryNotice');
+                    sessionStorage.setItem('planExpiryNotifShown', 'true');
+                }
+            }
+        }
+
+        async function dismissAdminMessage(key) {
+            await dbRootRef.child(`users/${String(telegramUser.id)}/readMessages/${key}`).set(true);
+            closeModal();
+        }
+
+        function checkAndShowWelcomeNotice() {
+            if (sessionStorage.getItem('welcome') || !appSettings.noticeText) return;
+            openModal('welcomeNotice');
+            sessionStorage.setItem('welcome', 'true');
+        }
+
+        // ============================================================
+        //  BALANCE CALCULATION
+        // ============================================================
+        function calculateIncomeBalances() {
+            const txs = Object.values(currentUserData.transactions || {});
+            let plan = 0,
+                free = 0;
+            txs.forEach(tx => {
+                if (tx.type === 'credit' && tx.status === 'Approved') {
+                    if (['plan_income', 'admin_credit_plan', 'gmail_job'].includes(tx.category)) plan += tx.amount;
+                    else if (['ad_reward', 'spin_reward', 'scratch_reward', 'task_reward', 'referral_bonus',
+                            'admin_credit_free', 'coupon_reward'
+                        ].includes(tx.category) || !tx.category) free += tx.amount;
+                } else if (tx.type === 'debit') {
+                    const amt = tx.requestedAmount || tx.amount;
+                    if (tx.category === 'withdraw_plan' || tx.category === 'admin_debit_plan') plan -= amt;
+                    else if (tx.category === 'withdraw_free' || tx.category === 'admin_debit_free') free -= amt;
+                }
+            });
+            currentUserData.planIncomeBalance = Math.max(0, plan);
+            currentUserData.freeIncomeBalance = Math.max(0, free);
+        }
+
+        // ============================================================
+        //  IMAGE SLIDER
+        // ============================================================
+        function initializeImageSlider() {
+            if (sliderInterval) clearInterval(sliderInterval);
+            const wrapper = document.getElementById('slider-wrapper');
+            if (!wrapper || wrapper.children.length <= 1) return;
+            let idx = 0;
+            const slides = wrapper.children;
+            sliderInterval = setInterval(() => {
+                idx = (idx + 1) % slides.length;
+                wrapper.style.transform = `translateX(-${idx * 100}%)`;
+            }, 5000);
+        }
+
+        function extractYouTubeID(url) {
+            const match = url.match(/^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/);
+            return (match && match[2].length === 11) ? match[2] : url;
+        }
 
         // ============================================================
         //  INIT
@@ -2381,13 +3382,6 @@
             document.getElementById('adLoadingOverlay').style.display = 'none';
             initTelegramApp();
         });
-
-        // ============================================================
-        //  (All missing functions are exactly as in previous version)
-        //  I will paste the complete code in the final answer.
-        // ============================================================
-        // ... (the rest of the JavaScript)
-        // For the final output, I will include the full script.
     </script>
 </body>
 </html>
