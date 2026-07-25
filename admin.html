@@ -282,6 +282,9 @@
         .btn-password {
             background-color: #e67e22;
         }
+        .btn-toggle-pw {
+            background-color: #2c3e50;
+        }
         .status-badge {
             padding: 4px 8px;
             border-radius: 12px;
@@ -292,8 +295,11 @@
         .status-pending {
             background-color: var(--warning);
         }
-        .status-resolved {
+        .status-approved {
             background-color: var(--success);
+        }
+        .status-rejected {
+            background-color: var(--danger);
         }
         .form-container {
             background: var(--card-bg-color);
@@ -540,11 +546,23 @@
             color: #555;
             margin-top: 5px;
         }
-        .status-badge-active {
-            background-color: var(--success);
+        .gmail-pw-toggle {
+            cursor: pointer;
+            background: none;
+            border: none;
+            color: var(--primary-color);
+            padding: 0 5px;
         }
-        .status-badge-inactive {
-            background-color: #95a5a6;
+        .gmail-pw-toggle:hover {
+            text-decoration: underline;
+        }
+        .password-masked {
+            font-family: monospace;
+        }
+        .section-divider {
+            border: 0;
+            border-top: 2px solid var(--border-color);
+            margin: 30px 0;
         }
     </style>
 </head>
@@ -652,6 +670,8 @@
                 <li><a href="#plans"><i class="fas fa-rocket"></i> প্ল্যান</a></li>
                 <li><a href="#coupons"><i class="fas fa-ticket-alt"></i> কুপন কোড</a></li>
                 <li><a href="#daily-tasks"><i class="fas fa-calendar-check"></i> ডেইলি টাস্ক</a></li>
+                <!-- ⭐️ NEW: Gmail Job menu -->
+                <li><a href="#gmail-job"><i class="fas fa-envelope"></i> জিমেইল জব</a></li>
                 <li><a href="#users"><i class="fas fa-users"></i> ব্যবহারকারী</a></li>
                 <li><a href="#new-users"><i class="fas fa-user-clock"></i> নতুন ব্যবহারকারী</a></li>
                 <li><a href="#messages"><i class="fas fa-paper-plane"></i> মেসেজ</a></li>
@@ -870,7 +890,7 @@
                     if (tx.category === 'plan_income' || tx.category === 'admin_credit_plan') {
                         planIncome += tx.amount;
                     } else if (['ad_reward', 'spin_reward', 'scratch_reward', 'task_reward', 'referral_bonus',
-                            'admin_credit_free'
+                            'admin_credit_free', 'gmail_job'
                         ].includes(tx.category) || !tx.category) {
                         freeIncome += tx.amount;
                     }
@@ -933,6 +953,7 @@
                     ], 'প্ল্যান', { 'dailyAdLimitForIncome': 'ইনকামের জন্য বিজ্ঞাপন সংখ্যা' }) },
                 'coupons': { title: "কুপন কোড ম্যানেজ", render: renderCouponsPage },
                 'daily-tasks': { title: "ডেইলি টাস্ক ম্যানেজ", render: renderDailyTasksPage },
+                'gmail-job': { title: "জিমেইল জব ম্যানেজ", render: renderGmailJobPage },
                 'users': { title: "সকল ব্যবহারকারী", render: () => renderUsersPage(params) },
                 'new-users': { title: "আজকের নতুন ব্যবহারকারী", render: renderNewUsersPage },
                 'messages': { title: "অ্যাডমিন মেসেজ", render: renderMessagesPage },
@@ -1478,7 +1499,237 @@
         }
 
         // ============================================================
-        //  ⭐️ UPDATED SETTINGS PAGE with AD CONFIG
+        //  ⭐️ GMAIL JOB PAGE
+        // ============================================================
+        function renderGmailJobPage() {
+            const content = document.getElementById('page-content-wrapper');
+            // We'll fetch settings and all gmail jobs
+            // Build the page: settings form + table of submissions
+            let html = `
+                <div class="form-container" style="max-width: 100%;">
+                    <h3>জিমেইল জব সেটিংস</h3>
+                    <form id="gmail-settings-form">
+                        <div class="form-group">
+                            <label>টার্গেট জিমেইল (যেখানে ইউজাররা ইমেইল পাঠাবে)</label>
+                            <input type="email" id="gmail-target-email" placeholder="admin@example.com" required>
+                        </div>
+                        <div class="form-group">
+                            <label>টার্গেট পাসওয়ার্ড (ইমেইল অ্যাকাউন্টের পাসওয়ার্ড)</label>
+                            <input type="text" id="gmail-target-password" placeholder="পাসওয়ার্ড">
+                        </div>
+                        <div class="form-group">
+                            <label>প্রতি সাবমিশনে রেট (পুরস্কারের পরিমাণ)</label>
+                            <input type="number" step="any" id="gmail-rate" placeholder="যেমন: 1.5" required>
+                        </div>
+                        <div class="form-group">
+                            <label>প্রতি ইউজার সর্বোচ্চ সাবমিশন লিমিট</label>
+                            <input type="number" id="gmail-user-limit" placeholder="যেমন: 5" required min="1">
+                        </div>
+                        <div class="form-actions">
+                            <button type="submit">সেটিংস সেভ করুন</button>
+                        </div>
+                    </form>
+                </div>
+                <hr class="section-divider">
+                <div>
+                    <h3>সকল জিমেইল জব সাবমিশন</h3>
+                    <div id="gmail-submissions-table" class="table-container">
+                        <p>লোড হচ্ছে...</p>
+                    </div>
+                </div>
+            `;
+            content.innerHTML = html;
+
+            // Load settings
+            dbRootRef.child('settings/gmailJob').on('value', snap => {
+                const settings = snap.val() || {};
+                document.getElementById('gmail-target-email').value = settings.adminEmail || '';
+                document.getElementById('gmail-target-password').value = settings.adminPassword || '';
+                document.getElementById('gmail-rate').value = settings.rate || '';
+                document.getElementById('gmail-user-limit').value = settings.userLimit || '';
+            });
+
+            // Load submissions
+            const tableContainer = document.getElementById('gmail-submissions-table');
+            dbRootRef.child('users').on('value', snap => {
+                const users = snap.val() || {};
+                let allJobs = [];
+                for (const uid in users) {
+                    const user = users[uid];
+                    if (user.gmailJobs) {
+                        for (const jobId in user.gmailJobs) {
+                            const job = user.gmailJobs[jobId];
+                            allJobs.push({
+                                uid: uid,
+                                jobId: jobId,
+                                userName: user.name || 'N/A',
+                                userEmail: user.email || 'N/A',
+                                ...job
+                            });
+                        }
+                    }
+                }
+                // Sort by timestamp descending
+                allJobs.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
+
+                if (allJobs.length === 0) {
+                    tableContainer.innerHTML = '<p>কোনো সাবমিশন পাওয়া যায়নি।</p>';
+                    return;
+                }
+
+                let tableHtml = `
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>ব্যবহারকারী</th>
+                                <th>ইমেইল (সাবমিট করা)</th>
+                                <th>পাসওয়ার্ড</th>
+                                <th>রেট</th>
+                                <th>স্ট্যাটাস</th>
+                                <th>তারিখ</th>
+                                <th>একশন</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                `;
+                allJobs.forEach(job => {
+                    const statusClass = job.status ? job.status.toLowerCase() : 'pending';
+                    const statusBadge = `<span class="status-badge status-${statusClass}">${job.status || 'Pending'}</span>`;
+                    const dateStr = job.timestamp ? new Date(job.timestamp).toLocaleString() : 'N/A';
+                    // Mask password by default
+                    const pwMasked = job.password ? '•'.repeat(Math.min(job.password.length, 8)) : 'N/A';
+                    // We'll add a toggle button to show/hide password
+                    const pwHtml = `
+                        <span class="password-masked" id="pw-${job.jobId}">${pwMasked}</span>
+                        <button class="btn-toggle-pw" onclick="togglePasswordVisibility('${job.jobId}', '${job.password || ''}')" style="background: none; border: none; color: var(--primary-color); cursor: pointer;">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                    `;
+                    // Actions: Approve, Reject, Delete
+                    let actions = '';
+                    if (job.status !== 'Approved' && job.status !== 'Rejected') {
+                        actions += `<button class="btn-approve" onclick="handleGmailJobAction('${job.uid}', '${job.jobId}', 'approve')">Approve</button>`;
+                        actions += `<button class="btn-reject" onclick="handleGmailJobAction('${job.uid}', '${job.jobId}', 'reject')">Reject</button>`;
+                    } else {
+                        actions += `<span style="color: #999;">${job.status}</span>`;
+                    }
+                    actions += `<button class="btn-delete" onclick="handleGmailJobAction('${job.uid}', '${job.jobId}', 'delete')">ডিলিট</button>`;
+
+                    tableHtml += `
+                        <tr>
+                            <td>${job.userName}</td>
+                            <td>${job.email || 'N/A'}</td>
+                            <td>${pwHtml}</td>
+                            <td>${job.rate || 'N/A'}</td>
+                            <td>${statusBadge}</td>
+                            <td>${dateStr}</td>
+                            <td class="action-btn-group">${actions}</td>
+                        </tr>
+                    `;
+                });
+                tableHtml += `</tbody></table>`;
+                tableContainer.innerHTML = tableHtml;
+            });
+
+            // Handle settings form submit
+            document.getElementById('gmail-settings-form').addEventListener('submit', function(e) {
+                e.preventDefault();
+                const adminEmail = document.getElementById('gmail-target-email').value.trim();
+                const adminPassword = document.getElementById('gmail-target-password').value.trim();
+                const rate = parseFloat(document.getElementById('gmail-rate').value);
+                const userLimit = parseInt(document.getElementById('gmail-user-limit').value);
+
+                if (!adminEmail || isNaN(rate) || isNaN(userLimit) || userLimit < 1) {
+                    alert('সব ফিল্ড সঠিকভাবে পূরণ করুন।');
+                    return;
+                }
+
+                const settings = {
+                    adminEmail: adminEmail,
+                    adminPassword: adminPassword,
+                    rate: rate,
+                    userLimit: userLimit
+                };
+
+                dbRootRef.child('settings/gmailJob').update(settings)
+                    .then(() => {
+                        alert('সেটিংস সেভ হয়েছে!');
+                    })
+                    .catch(err => {
+                        alert('সেটিংস সেভ করতে সমস্যা হয়েছে: ' + err.message);
+                    });
+            });
+        }
+
+        // ============================================================
+        //  GMAIL JOB ACTIONS
+        // ============================================================
+        function togglePasswordVisibility(jobId, password) {
+            const span = document.getElementById(`pw-${jobId}`);
+            if (!span) return;
+            if (span.textContent === password) {
+                // Mask again
+                span.textContent = '•'.repeat(Math.min(password.length, 8));
+            } else {
+                span.textContent = password;
+            }
+        }
+
+        async function handleGmailJobAction(uid, jobId, action) {
+            if (action === 'delete') {
+                if (!confirm('আপনি কি এই সাবমিশনটি ডিলিট করতে নিশ্চিত?')) return;
+                try {
+                    await dbRootRef.child(`users/${uid}/gmailJobs/${jobId}`).remove();
+                    alert('ডিলিট করা হয়েছে।');
+                } catch (err) {
+                    alert('ডিলিট করতে সমস্যা: ' + err.message);
+                }
+                return;
+            }
+
+            if (action === 'approve' || action === 'reject') {
+                const status = action === 'approve' ? 'Approved' : 'Rejected';
+                // Get the job data to know the rate
+                const jobSnap = await dbRootRef.child(`users/${uid}/gmailJobs/${jobId}`).once('value');
+                const job = jobSnap.val();
+                if (!job) { alert('জব খুঁজে পাওয়া যায়নি।'); return; }
+
+                const updates = {};
+                updates[`users/${uid}/gmailJobs/${jobId}/status`] = status;
+
+                if (action === 'approve') {
+                    // Add reward to user's free income (or plan? we'll use free)
+                    const amount = job.rate || 0;
+                    if (amount > 0) {
+                        // Add transaction
+                        const txKey = dbRootRef.child(`users/${uid}/transactions`).push().key;
+                        updates[`users/${uid}/transactions/${txKey}`] = {
+                            type: 'credit',
+                            amount: amount,
+                            reason: 'Gmail Job Reward',
+                            category: 'gmail_job',
+                            status: 'Approved',
+                            timestamp: firebase.database.ServerValue.TIMESTAMP
+                        };
+                        // Also increment earnedPoints? We'll update freeIncome balance via transaction.
+                        // We'll add to earnedPoints as well (though we calculate from transactions)
+                        // We'll not double count.
+                        // We can just update the balance via increment? But we already recalc from transactions.
+                        // Just add transaction is enough.
+                    }
+                }
+
+                try {
+                    await dbRootRef.update(updates);
+                    alert(`সাবমিশন ${status} করা হয়েছে।`);
+                } catch (err) {
+                    alert('অপারেশন ব্যর্থ: ' + err.message);
+                }
+            }
+        }
+
+        // ============================================================
+        //  SETTINGS PAGE (UPDATED WITH AD CONFIG)
         // ============================================================
         function renderSettingsPage() {
             const content = document.getElementById('page-content-wrapper');
@@ -1606,9 +1857,6 @@
             </div>`;
         }
 
-        // ============================================================
-        //  ⭐️ UPDATED SAVE SETTINGS with AD IDs
-        // ============================================================
         function saveSettings() {
             try {
                 const getLinksFromContainer = (containerId) => {
@@ -1657,7 +1905,6 @@
                 dbRootRef.child('settings').update(settings)
                     .then(() => {
                         alert('✅ সেটিংস সেভ হয়েছে!');
-                        // Refresh the page to show updated values
                         renderSettingsPage();
                     })
                     .catch(err => alert('সেটিংস সেভ করতে সমস্যা হয়েছে: ' + err.message));
@@ -2128,8 +2375,8 @@
         // 🔼 DEPLOY THIS AS A FIREBASE CLOUD FUNCTION 🔼
         */
 
-        console.log('%c📌 অ্যাড নেটওয়ার্ক কনফিগারেশন:', 'font-size:16px;font-weight:bold;');
-        console.log('%cGigapub Zone ID এবং Adexora Ad ID এখন এডমিন প্যানেলের সেটিংস পেজ থেকে কনফিগার করা যাবে।', 'color:#2c3e50;');
+        console.log('%c📌 Gmail Job Management added:', 'font-size:16px;font-weight:bold;');
+        console.log('%cAdmin can set target email, password, rate, user limit and approve/reject submissions.', 'color:#2c3e50;');
     </script>
 </body>
 </html>
