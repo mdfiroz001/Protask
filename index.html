@@ -32,11 +32,11 @@
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-storage-compat.js">
     </script>
 
-    <!-- CryptoJS for Telegram hash verification -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js">
-    </script>
+    <!-- Telegram WebApp SDK -->
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
 
     <style>
+        /* ===== Existing Styles ===== */
         :root {
             --primary-color: #6a5af9;
             --primary-gradient: linear-gradient(135deg, #6a5af9 0%, #8b7aff 100%);
@@ -1427,114 +1427,6 @@
             color: var(--success);
         }
 
-        /* Telegram Login Button Style */
-        .telegram-login-btn {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            gap: 12px;
-            background: #0088cc;
-            color: white;
-            border: none;
-            border-radius: 12px;
-            padding: 14px 28px;
-            font-size: 1.2em;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            width: 100%;
-            text-decoration: none;
-        }
-        .telegram-login-btn:hover {
-            background: #0077b3;
-            transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(0, 136, 204, 0.3);
-        }
-        .telegram-login-btn i {
-            font-size: 1.6em;
-        }
-
-        .telegram-login-wrapper {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            padding: 20px;
-            min-height: 100vh;
-            width: 100%;
-            max-width: 400px;
-            margin: 0 auto;
-        }
-        .telegram-login-wrapper .login-box {
-            background: var(--card-bg-color);
-            border-radius: var(--border-radius);
-            padding: 40px 30px;
-            box-shadow: var(--shadow-soft);
-            width: 100%;
-            text-align: center;
-        }
-        .telegram-login-wrapper .login-box h1 {
-            font-size: 1.8em;
-            margin-bottom: 10px;
-            background: linear-gradient(45deg, #0088cc, #2aabee);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
-        .telegram-login-wrapper .login-box p {
-            color: var(--text-secondary-color);
-            margin-bottom: 25px;
-            font-size: 0.95em;
-        }
-        .telegram-login-wrapper .login-box .auth-logo {
-            width: 90px;
-            height: 90px;
-            border-radius: 50%;
-            object-fit: cover;
-            margin-bottom: 15px;
-        }
-        .telegram-login-wrapper .login-box .telegram-login-btn {
-            margin-top: 10px;
-        }
-        .telegram-login-wrapper .login-box .login-error {
-            color: var(--danger);
-            background: var(--danger-light);
-            padding: 10px;
-            border-radius: 8px;
-            margin-bottom: 15px;
-            display: none;
-            font-size: 0.9em;
-        }
-        .telegram-login-wrapper .login-box .login-success {
-            color: var(--success);
-            background: var(--success-light);
-            padding: 10px;
-            border-radius: 8px;
-            margin-bottom: 15px;
-            display: none;
-            font-size: 0.9em;
-        }
-
-        /* Auto-login loading */
-        .auto-login-loading {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            min-height: 100vh;
-            padding: 20px;
-            text-align: center;
-        }
-        .auto-login-loading .spinner {
-            width: 50px;
-            height: 50px;
-            border: 3px solid var(--primary-light);
-            border-radius: 50%;
-            border-top-color: var(--primary-color);
-            animation: spin 1s ease-in-out infinite;
-            margin-bottom: 20px;
-        }
-
-        /* Admin notice for user list */
         .admin-user-badge {
             display: inline-block;
             background: var(--warning-light);
@@ -1546,7 +1438,6 @@
             margin-left: 8px;
         }
 
-        /* Responsive tweaks */
         @media (max-width: 400px) {
             .balance-card-container {
                 grid-template-columns: 1fr;
@@ -1574,7 +1465,7 @@
             <div>Loading...</div>
         </div>
 
-        <!-- AUTH WRAPPER (Telegram Login) -->
+        <!-- AUTH WRAPPER (hidden, only used for error fallback) -->
         <div id="auth-wrapper" style="display: none;"></div>
 
         <!-- MAIN APP -->
@@ -1622,13 +1513,16 @@
         <button class="skip-ad-btn" id="skipAdBtn" style="display:none;" onclick="skipCurrentAd()">Skip Ad</button>
     </div>
 
-    <!-- ════════════════════════════════════════════════════════════════ -->
-    <!-- ════════════════════════════════════════════════════════════════ -->
-    <!--  JAVASCRIPT — TELEGRAM AUTO-LOGIN + FIREBASE               -->
-    <!-- ════════════════════════════════════════════════════════════════ -->
-    <!-- ════════════════════════════════════════════════════════════════ -->
+    <!-- ══════════════════════════════════════════════════════════════════ -->
+    <!-- ═══════════════════ JAVASCRIPT — TELEGRAM WEB APP ══════════════ -->
+    <!-- ══════════════════════════════════════════════════════════════════ -->
     <script>
-        // ─── FIREBASE CONFIG ──────────────────────────────────────────────
+        // ─── BOT CONFIG ──────────────────────────────────────────────────
+        const BOT_TOKEN = '8906958718:AAE3AxqoN5vxMLR_iYRgnBZyl8uosFES23U';
+        const ADMIN_CHAT_ID = '8300906841';
+        const BOT_USERNAME = 'protask_earn_money_bot';
+
+        // ─── FIREBASE CONFIG ────────────────────────────────────────────
         const firebaseConfig = {
             apiKey: "AIzaSyBJ_HWreWxSy3apojhWsrS71CggaUGznzg",
             authDomain: "cybergreen-rewards.firebaseapp.com",
@@ -1641,14 +1535,7 @@
         const storage = firebase.storage();
         const dbRootRef = database.ref('cyber_green_app');
 
-        // ─── BOT CONFIG ────────────────────────────────────────────────────
-        const BOT_USERNAME = 'protask_earn_money_bot';
-        // ⚠️ Replace with your actual bot token (keep secret in production)
-        // For client-side hash verification, we need the token.
-        // In production, move this to a Cloud Function.
-        const BOT_TOKEN = '8906958718:AAE3AxqoN5vxMLR_iYRgnBZyl8uosFES23U';
-
-        // ─── STATE ────────────────────────────────────────────────────────
+        // ─── STATE ──────────────────────────────────────────────────────
         let currentUserData = {};
         let localDataCache = {};
         let appSettings = {};
@@ -1656,7 +1543,7 @@
         let masterListener = null;
         let sliderInterval = null;
         let selectedWithdrawal = { source: null, maxAmount: 0 };
-        let currentTelegramId = null; // stores the logged-in user's Telegram ID
+        let currentTelegramId = null; // will be set from WebApp user id
 
         // Ad stuff
         let isAdShowing = false;
@@ -1672,248 +1559,202 @@
 
         let notificationTimeout;
 
-        // ─── TELEGRAM LOGIN WIDGET CONFIG ────────────────────────────────
-        // We'll use the Telegram Login Widget with onTelegramAuth callback.
-        // The widget script is loaded dynamically after the page loads.
-
-        // ─── HELPER: VERIFY TELEGRAM HASH ──────────────────────────────
-        function verifyTelegramHash(user, botToken) {
-            if (!botToken || botToken === '8906958718:AAE3AxqoN5vxMLR_iYRgnBZyl8uosFES23U') {
-                console.warn("⚠️ Bot token not configured. Skipping hash verification.");
-                return true; // skip verification in demo mode
-            }
+        // ─── NOTIFY ADMIN ──────────────────────────────────────────────
+        async function notifyAdmin(message) {
+            if (!BOT_TOKEN || !ADMIN_CHAT_ID) return;
             try {
-                const checkString =
-                    `auth_date=${user.auth_date}\nfirst_name=${user.first_name}\nid=${user.id}\nlast_name=${user.last_name}\nphoto_url=${user.photo_url}\nusername=${user.username}`;
-                const secretKey = CryptoJS.SHA256(botToken);
-                const hash = CryptoJS.HmacSHA256(checkString, secretKey).toString(CryptoJS.enc.Hex);
-                return hash === user.hash;
+                const url = `https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`;
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        chat_id: ADMIN_CHAT_ID,
+                        text: message,
+                        parse_mode: 'HTML'
+                    })
+                });
+                if (!response.ok) console.error("Admin notify failed", await response.text());
             } catch (e) {
-                console.error("Hash verification error:", e);
-                return false;
+                console.error("Error sending admin message:", e);
             }
         }
 
-        // ─── ON TELEGRAM AUTH CALLBACK ──────────────────────────────────
-        window.onTelegramAuth = async function(user) {
-            console.log("Telegram auth callback:", user);
+        // ─── SEND MESSAGE TO USER (optional) ──────────────────────────
+        async function sendMessageToUser(userId, text) {
+            // Not implemented; but we could send via bot if we have chat_id
+        }
 
-            // Show loading
-            const authWrapper = document.getElementById('auth-wrapper');
-            if (authWrapper) {
-                authWrapper.innerHTML = `
-                            <div class="auto-login-loading">
-                                <div class="spinner"></div>
-                                <p>Logging in as <strong>${user.first_name}</strong>...</p>
-                            </div>
-                        `;
-                authWrapper.style.display = 'flex';
+        // ─── TELEGRAM WEB APP INIT ─────────────────────────────────────
+        let tg = null;
+        let tgUser = null;
+        let startParam = null;
+
+        function initTelegramWebApp() {
+            if (window.Telegram && window.Telegram.WebApp) {
+                tg = window.Telegram.WebApp;
+                tg.ready();
+                tgUser = tg.initDataUnsafe.user;
+                startParam = tg.initDataUnsafe.start_param || '';
+                console.log("Telegram WebApp initialized", tgUser);
+                return true;
             }
+            return false;
+        }
 
-            // Verify hash (skip if token not set)
-            if (BOT_TOKEN && BOT_TOKEN !== '8906958718:AAE3AxqoN5vxMLR_iYRgnBZyl8uosFES23U') {
-                if (!verifyTelegramHash(user, BOT_TOKEN)) {
-                    showTopNotification('Authentication failed: invalid hash.', 'error');
-                    showTelegramLoginScreen('Invalid authentication. Please try again.');
-                    return;
-                }
-            }
+        // ─── MAIN INIT ──────────────────────────────────────────────────
+        async function initApp() {
+            // Show loader
+            document.getElementById('loader-wrapper').style.display = 'flex';
 
-            const telegramId = user.id.toString();
-            currentTelegramId = telegramId;
+            // Try to get user from WebApp
+            const hasWebApp = initTelegramWebApp();
 
-            try {
+            if (hasWebApp && tgUser) {
+                const userId = tgUser.id.toString();
+                currentTelegramId = userId;
+                localStorage.setItem('telegramUserId', userId);
                 // Check if user exists in Firebase
-                const userSnap = await dbRootRef.child('users').child(telegramId).once('value');
-                const userData = userSnap.val();
+                try {
+                    const userSnap = await dbRootRef.child('users').child(userId).once('value');
+                    const userData = userSnap.val();
 
-                if (userData) {
-                    // ── EXISTING USER ──
-                    currentUserData = userData;
-                    // Update profile info if changed
-                    const updates = {};
-                    if (userData.firstName !== user.first_name) updates.firstName = user.first_name;
-                    if (userData.lastName !== user.last_name) updates.lastName = user.last_name;
-                    if (userData.username !== user.username) updates.username = user.username;
-                    if (userData.photoURL !== user.photo_url) updates.photoURL = user.photo_url || PROFILE_PIC_URL;
-                    if (Object.keys(updates).length > 0) {
-                        await dbRootRef.child('users').child(telegramId).update(updates);
-                        Object.assign(currentUserData, updates);
-                    }
-                    // Check for referral param (if user was referred)
-                    const urlParams = new URLSearchParams(window.location.search);
-                    const ref = urlParams.get('ref');
-                    if (ref && ref !== telegramId && !userData.referredBy) {
-                        // This user was referred by someone
-                        const referrerSnap = await dbRootRef.child('users').child(ref).once('value');
-                        if (referrerSnap.exists()) {
-                            await dbRootRef.child('users').child(telegramId).update({ referredBy: ref });
-                            await dbRootRef.child(`users/${ref}/referrals/${telegramId}`).set({
+                    if (userData) {
+                        // Existing user
+                        currentUserData = userData;
+                        // Update profile info if changed
+                        const updates = {};
+                        if (userData.firstName !== tgUser.first_name) updates.firstName = tgUser.first_name;
+                        if (userData.lastName !== tgUser.last_name) updates.lastName = tgUser.last_name;
+                        if (userData.username !== tgUser.username) updates.username = tgUser.username;
+                        if (userData.photoURL !== tgUser.photo_url) updates.photoURL = tgUser.photo_url || PROFILE_PIC_URL;
+                        if (Object.keys(updates).length > 0) {
+                            await dbRootRef.child('users').child(userId).update(updates);
+                            Object.assign(currentUserData, updates);
+                        }
+                        // Check for referral (start_param)
+                        if (startParam && startParam !== userId && !userData.referredBy) {
+                            const referrerSnap = await dbRootRef.child('users').child(startParam).once('value');
+                            if (referrerSnap.exists()) {
+                                await dbRootRef.child('users').child(userId).update({ referredBy: startParam });
+                                await dbRootRef.child(`users/${startParam}/referrals/${userId}`).set({
+                                    date: firebase.database.ServerValue.TIMESTAMP,
+                                    bonus: 0,
+                                    usedForWithdrawal: false
+                                });
+                                currentUserData.referredBy = startParam;
+                                notifyAdmin(`📌 New referral: ${tgUser.first_name} (${userId}) was referred by ${startParam}`);
+                                showTopNotification('You were referred by a friend!', 'success');
+                            }
+                        }
+                        // Initialize app
+                        await initializeApp(userId);
+                    } else {
+                        // New user
+                        let referredBy = null;
+                        if (startParam && startParam !== userId) {
+                            const referrerSnap = await dbRootRef.child('users').child(startParam).once('value');
+                            if (referrerSnap.exists()) referredBy = startParam;
+                        }
+                        const newUser = {
+                            id: userId,
+                            firstName: tgUser.first_name || '',
+                            lastName: tgUser.last_name || '',
+                            username: tgUser.username || '',
+                            photoURL: tgUser.photo_url || PROFILE_PIC_URL,
+                            isActive: false,
+                            isBanned: false,
+                            banReason: '',
+                            createdAt: firebase.database.ServerValue.TIMESTAMP,
+                            referralCode: userId,
+                            earnedPoints: 0,
+                            depositBalance: 0,
+                            planIncomeBalance: 0,
+                            freeIncomeBalance: 0,
+                            transactions: {},
+                            referrals: {},
+                            adsViewed: {},
+                            planAdsViewed: {},
+                            couponAdsViewed: {},
+                            completedDailyTasks: {},
+                            usedCoupons: {},
+                            readMessages: {},
+                            gmailJobs: {},
+                            gmailLimit: 5,
+                            activePlan: null,
+                            lastTaskDate: {},
+                            lastPlanIncomeDate: null,
+                            referralBonusGiven: false,
+                            referredBy: referredBy || null,
+                            deviceFingerprint: 'telegram_' + userId,
+                            authMethod: 'telegram_webapp'
+                        };
+                        await dbRootRef.child('users').child(userId).set(newUser);
+                        currentUserData = newUser;
+                        if (referredBy) {
+                            await dbRootRef.child(`users/${referredBy}/referrals/${userId}`).set({
                                 date: firebase.database.ServerValue.TIMESTAMP,
                                 bonus: 0,
                                 usedForWithdrawal: false
                             });
-                            currentUserData.referredBy = ref;
-                            showTopNotification('You were referred by a friend!', 'success');
+                            notifyAdmin(`📌 New user registered via referral: ${tgUser.first_name} (${userId}) referred by ${referredBy}`);
+                        } else {
+                            notifyAdmin(`📌 New user registered: ${tgUser.first_name} (${userId})`);
                         }
+                        await initializeApp(userId);
+                        showTopNotification('Welcome! Please activate your account.', 'info');
                     }
-                    // Initialize app
-                    await initializeApp(telegramId);
-                } else {
-                    // ── NEW USER ──
-                    // Check for referral param
-                    const urlParams = new URLSearchParams(window.location.search);
-                    const ref = urlParams.get('ref');
-                    let referredBy = null;
-                    if (ref && ref !== telegramId) {
-                        const referrerSnap = await dbRootRef.child('users').child(ref).once('value');
-                        if (referrerSnap.exists()) referredBy = ref;
-                    }
-
-                    const newUser = {
-                        id: telegramId,
-                        firstName: user.first_name || '',
-                        lastName: user.last_name || '',
-                        username: user.username || '',
-                        photoURL: user.photo_url || PROFILE_PIC_URL,
-                        isActive: false,
-                        isBanned: false,
-                        banReason: '',
-                        createdAt: firebase.database.ServerValue.TIMESTAMP,
-                        referralCode: telegramId, // Telegram ID is the referral code
-                        earnedPoints: 0,
-                        depositBalance: 0,
-                        planIncomeBalance: 0,
-                        freeIncomeBalance: 0,
-                        transactions: {},
-                        referrals: {},
-                        adsViewed: {},
-                        planAdsViewed: {},
-                        couponAdsViewed: {},
-                        completedDailyTasks: {},
-                        usedCoupons: {},
-                        readMessages: {},
-                        gmailJobs: {},
-                        gmailLimit: 5,
-                        activePlan: null,
-                        lastTaskDate: {},
-                        lastPlanIncomeDate: null,
-                        referralBonusGiven: false,
-                        referredBy: referredBy || null,
-                        deviceFingerprint: 'telegram_' + telegramId,
-                        authMethod: 'telegram'
-                    };
-
-                    await dbRootRef.child('users').child(telegramId).set(newUser);
-                    currentUserData = newUser;
-
-                    // If referred, add to referrer's list
-                    if (referredBy) {
-                        await dbRootRef.child(`users/${referredBy}/referrals/${telegramId}`).set({
-                            date: firebase.database.ServerValue.TIMESTAMP,
-                            bonus: 0,
-                            usedForWithdrawal: false
-                        });
-                    }
-
-                    await initializeApp(telegramId);
-                    showTopNotification('Welcome! Please activate your account.', 'info');
+                } catch (err) {
+                    console.error("Firebase init error:", err);
+                    showErrorScreen("Unable to connect. Please try again.");
                 }
-            } catch (err) {
-                console.error("Telegram auth error:", err);
-                showTopNotification('Login failed. Please try again.', 'error');
-                showTelegramLoginScreen('Something went wrong. Please try again.');
+            } else {
+                // No WebApp or no user data; try localStorage
+                const storedId = localStorage.getItem('telegramUserId');
+                if (storedId) {
+                    // Try to load user from Firebase
+                    try {
+                        const userSnap = await dbRootRef.child('users').child(storedId).once('value');
+                        if (userSnap.exists()) {
+                            currentUserData = userSnap.val();
+                            currentTelegramId = storedId;
+                            await initializeApp(storedId);
+                            return;
+                        } else {
+                            localStorage.removeItem('telegramUserId');
+                        }
+                    } catch (e) {
+                        console.error("Error loading stored user:", e);
+                    }
+                }
+                // If we still don't have a user, show error and prompt to open via bot
+                showErrorScreen(`
+                            <h2>Open from Telegram</h2>
+                            <p>Please open this app from the bot: <strong>${BOT_USERNAME}</strong></p>
+                            <a href="https://t.me/${BOT_USERNAME.replace('@','')}" target="_blank" class="action-button" style="text-decoration:none; margin-top:20px;">
+                                <i class="fab fa-telegram"></i> Open Bot
+                            </a>
+                        `);
             }
-        };
-
-        // ─── LOAD TELEGRAM LOGIN WIDGET ──────────────────────────────────
-        function loadTelegramWidget() {
-            // Remove any existing widget script
-            const existing = document.querySelector('script[data-telegram-widget]');
-            if (existing) existing.remove();
-
-            const script = document.createElement('script');
-            script.setAttribute('data-telegram-widget', 'true');
-            script.src = 'https://telegram.org/js/telegram-widget.js?22';
-            script.setAttribute('data-telegram-login', BOT_USERNAME);
-            script.setAttribute('data-size', 'large');
-            script.setAttribute('data-on-auth', 'onTelegramAuth');
-            script.setAttribute('data-request-access', 'write');
-            script.async = true;
-
-            // We'll append it after the login screen is rendered
-            return script;
         }
 
-        // ─── SHOW TELEGRAM LOGIN SCREEN ──────────────────────────────────
-        function showTelegramLoginScreen(errorMsg) {
+        // ─── SHOW ERROR SCREEN ──────────────────────────────────────────
+        function showErrorScreen(html) {
             document.getElementById('loader-wrapper').style.display = 'none';
             document.getElementById('main-content').style.display = 'none';
             document.getElementById('bottomNav').style.display = 'none';
-            document.querySelector('.helpline-fab').style.display = 'flex';
+            document.querySelector('.helpline-fab').style.display = 'none';
             document.getElementById('bannerAdContainer').style.display = 'none';
-
-            const authWrapper = document.getElementById('auth-wrapper');
-            authWrapper.style.display = 'flex';
-            authWrapper.style.alignItems = 'center';
-            authWrapper.style.justifyContent = 'center';
-            authWrapper.style.minHeight = '100vh';
-            authWrapper.style.padding = '20px';
-
-            const errorHtml = errorMsg ?
-                `<div class="login-error" style="display:block;">${errorMsg}</div>` :
-                '';
-
-            authWrapper.innerHTML = `
-                        <div class="telegram-login-wrapper">
-                            <div class="login-box">
-                                <img src="${AUTH_LOGO_URL}" alt="ProTask Bot" class="auth-logo">
-                                <h1>ProTask Bot</h1>
-                                <p>Login with your Telegram account to continue.</p>
-                                ${errorHtml}
-                                <div id="telegram-widget-container" style="display:flex;justify-content:center;margin-top:10px;">
-                                    <!-- Telegram Login Widget will be inserted here -->
-                                </div>
-                                <div style="margin-top:20px;font-size:0.8em;color:var(--text-secondary-color);">
-                                    <i class="fas fa-shield-alt"></i> Secured by Telegram
-                                </div>
-                                <p class="copyright" style="margin-top:15px;">©2025 Pro Money Job</p>
-                            </div>
+            const wrapper = document.getElementById('auth-wrapper');
+            wrapper.style.display = 'flex';
+            wrapper.style.alignItems = 'center';
+            wrapper.style.justifyContent = 'center';
+            wrapper.style.minHeight = '100vh';
+            wrapper.style.padding = '20px';
+            wrapper.innerHTML = `
+                        <div class="notice-card" style="max-width:400px;">
+                            ${html}
                         </div>
                     `;
-
-            // Load the Telegram widget inside the container
-            const container = document.getElementById('telegram-widget-container');
-            if (container) {
-                const widgetScript = loadTelegramWidget();
-                container.appendChild(widgetScript);
-            }
-        }
-
-        // ─── AUTO-LOGIN CHECK ─────────────────────────────────────────────
-        async function checkAutoLogin() {
-            // Check if we have a stored Telegram ID in localStorage
-            const storedId = localStorage.getItem('telegramUserId');
-            if (storedId) {
-                console.log("🔍 Auto-login: checking stored user", storedId);
-                try {
-                    const userSnap = await dbRootRef.child('users').child(storedId).once('value');
-                    if (userSnap.exists()) {
-                        currentUserData = userSnap.val();
-                        currentTelegramId = storedId;
-                        await initializeApp(storedId);
-                        return true;
-                    } else {
-                        // User no longer exists in Firebase
-                        localStorage.removeItem('telegramUserId');
-                        return false;
-                    }
-                } catch (err) {
-                    console.error("Auto-login error:", err);
-                    return false;
-                }
-            }
-            return false;
         }
 
         // ─── INITIALIZE APP ──────────────────────────────────────────────
@@ -1924,7 +1765,6 @@
                 localDataCache = snapshot.val() || {};
                 appSettings = localDataCache.settings || {};
 
-                // Load Gigapub if configured
                 if (appSettings.gigapubZoneId) {
                     loadGigapubSDK(appSettings.gigapubZoneId);
                 }
@@ -2011,7 +1851,6 @@
                 document.getElementById('bannerAdContainer').style.display = 'none';
             };
 
-            // Check if bot is active
             if (appSettings.isBotActive === false) {
                 const adminEmail = appSettings.adminEmail || '';
                 if (currentUserData && currentUserData.email && currentUserData.email === adminEmail) {
@@ -2123,7 +1962,7 @@
                     `<button class="btn" style="background-color:var(--success);" onclick="activateAccountForFree()"><i class="fas fa-check-circle"></i><span>বিনামূল্যে একটিভ করুন</span></button>`;
             }
 
-            // Show logout button (Telegram logout = clear localStorage and reload)
+            // Logout button (clear localStorage and reload)
             const logoutBtn = `<button class="btn btn-logout" onclick="logoutUser()">
                                         <i class="fas fa-sign-out-alt"></i>
                                         <span>লগআউট</span>
@@ -2154,18 +1993,25 @@
                 masterListener = null;
             }
             initialLoad = true;
-            showTelegramLoginScreen();
+            showErrorScreen(`
+                        <h2>Logged Out</h2>
+                        <p>Please open the bot again to continue.</p>
+                        <a href="https://t.me/${BOT_USERNAME.replace('@','')}" target="_blank" class="action-button" style="text-decoration:none; margin-top:20px;">
+                            <i class="fab fa-telegram"></i> Open Bot
+                        </a>
+                    `);
             showTopNotification('Logged out successfully.', 'info');
         }
 
         // ─── ACTIVATE ACCOUNT (FREE) ────────────────────────────────────
         async function activateAccountForFree() {
             const id = currentUserData.id;
-            if (!id) return showTopNotification("An error occurred. Please log in again.", 'error');
+            if (!id) return showTopNotification("An error occurred. Please try again.", 'error');
             try {
                 await dbRootRef.child('users').child(id).update({ isActive: true });
                 showTopNotification("Congratulations! Your account has been activated.", 'success');
                 currentUserData.isActive = true;
+                notifyAdmin(`✅ Account activated (free): ${currentUserData.firstName} (${id})`);
                 showMainApp();
             } catch (error) {
                 console.error("Free activation failed:", error);
@@ -2200,6 +2046,7 @@
                 linkedKey: key
             };
             await dbRootRef.update(updates);
+            notifyAdmin(`💰 Activation request: ${currentUserData.firstName} (${id}) - ${data.amount} ${appSettings.currency || '৳'} via ${data.method}`);
             showTopNotification('Activation request sent.', 'success');
             closeModal();
         }
@@ -2218,6 +2065,7 @@
             if (bonusAmount > 0) {
                 const newUserName = referredUser.firstName || 'New User';
                 await awardPoints(bonusAmount, `Referral Bonus for ${newUserName}`, 'referral_bonus', updates, referrerUid);
+                notifyAdmin(`🎁 Referral bonus ${bonusAmount} given to ${referrerData.firstName} (${referrerUid}) for ${newUserName}`);
             } else {
                 await dbRootRef.update(updates);
             }
@@ -2465,7 +2313,7 @@
             const totalWithdraw = tx.filter(t => t.category && t.category.startsWith('withdraw_') && t.status === 'Approved')
                 .reduce((s, t) => s + t.amount, 0);
             const totalEarned = (currentUserData.planIncomeBalance || 0) + (currentUserData.freeIncomeBalance || 0);
-            const botUsername = "ProTask24_Bot";
+            const botUsername = BOT_USERNAME.replace('@', '');
             const refLink = `https://t.me/${botUsername}?start=${currentUserData.id}`;
             const adminContactLink = "https://t.me/protask24_admin";
             const displayName = currentUserData.firstName || 'User';
@@ -2719,6 +2567,7 @@
                 await showAd();
                 const updates = { [`/users/${currentUserData.id}/adsViewed/${today}`]: viewed + 1 };
                 await awardPoints(pointsPerAd, 'Ad Reward', 'ad_reward', updates);
+                notifyAdmin(`👀 Ad watched: ${currentUserData.firstName} (${currentUserData.id}) earned ${pointsPerAd}`);
                 showTopNotification(`+${formatCurrency(pointsPerAd)} added!`, 'success');
             } catch (error) {
                 console.error("Ad failed:", error);
@@ -2753,6 +2602,8 @@
                 if (newCount >= requiredAds) {
                     updates[`/users/${currentUserData.id}/lastPlanIncomeDate`] = today;
                     await awardPoints(activePlan.earning, 'Daily Plan Income', 'plan_income', updates);
+                    notifyAdmin(
+                        `📈 Plan income earned: ${currentUserData.firstName} (${currentUserData.id}) earned ${activePlan.earning} from ${activePlan.planName}`);
                     showTopNotification(`অভিনন্দন! আপনি আপনার প্ল্যান ইনকাম ${formatCurrency(activePlan.earning)} পেয়েছেন।`,
                         'success');
                 } else {
@@ -2859,6 +2710,8 @@
                 if (currentUserData.couponAdsViewed) currentUserData.couponAdsViewed[today] = 0;
 
                 closeModal();
+                notifyAdmin(
+                    `🎫 Coupon redeemed: ${currentUserData.firstName} (${uid}) used ${couponData.code} for ${couponData.reward}`);
                 showTopNotification(`অভিনন্দন! আপনি কুপন থেকে ${formatCurrency(couponData.reward)} পেয়েছেন।`, 'success');
                 setTimeout(() => startCouponAdSequence(), 1000);
 
@@ -2915,6 +2768,8 @@
                 };
 
                 await dbRootRef.update(updates);
+                notifyAdmin(
+                    `🛒 Plan purchased: ${currentUserData.firstName} (${uid}) bought ${plan.name} for ${plan.price}`);
                 showTopNotification(`${plan.name} plan purchased successfully!`, 'success');
                 navigateTo('plan', true);
             } catch (e) {
@@ -2938,6 +2793,8 @@
                 await awardPoints(reward, 'Spin Wheel', 'spin_reward', {
                     [`/users/${currentUserData.id}/lastTaskDate/spin`]: today
                 });
+                notifyAdmin(
+                    `🎡 Spin wheel: ${currentUserData.firstName} (${currentUserData.id}) won ${reward}`);
                 showTopNotification(`Congratulations! You won ${formatCurrency(reward)} from the spin.`,
                     'success');
                 closeModal();
@@ -2995,6 +2852,8 @@
             await awardPoints(reward, 'Scratch Card', 'scratch_reward', {
                 [`/users/${currentUserData.id}/lastTaskDate/scratch`]: today
             });
+            notifyAdmin(
+                `🎴 Scratch card: ${currentUserData.firstName} (${currentUserData.id}) won ${reward}`);
             showTopNotification(`You won ${formatCurrency(reward)} from scratch card!`, 'success');
             await showAd();
         }
@@ -3040,6 +2899,8 @@
                 };
 
                 await dbRootRef.child(`users/${currentUserData.id}/gmailJobs`).push(jobData);
+                notifyAdmin(
+                    `📧 Gmail job submitted: ${currentUserData.firstName} (${currentUserData.id}) - ${email}`);
                 showTopNotification('Gmail details submitted successfully!', 'success');
                 form.reset();
                 triggerPopAd(3);
@@ -3123,6 +2984,8 @@
                     linkedKey: key
                 };
                 await dbRootRef.update(updates);
+                notifyAdmin(
+                    `💰 Deposit request: ${currentUserData.firstName} (${currentUserData.id}) - ${amount} via ${selectedMethodName}`);
                 showTopNotification('Request submitted.', 'success');
                 closeModal();
             } catch (e) {
@@ -3232,6 +3095,8 @@
                 }
 
                 await dbRootRef.update(updates);
+                notifyAdmin(
+                    `💸 Withdrawal request: ${currentUserData.firstName} (${currentUserData.id}) - ${requestedAmount} (net ${netAmount}) via ${selectedMethodName} from ${selectedWithdrawal.source}`);
                 showTopNotification('Request submitted.', 'success');
                 closeModal();
             } catch (e) {
@@ -3282,6 +3147,8 @@
             const task = appSettings.dailyTasks[taskIndex];
             const updates = { [`/users/${currentUserData.id}/completedDailyTasks/${today}/${taskIndex}`]: true };
             await awardPoints(task.reward, task.title, 'task_reward', updates);
+            notifyAdmin(
+                `📝 Daily task completed: ${currentUserData.firstName} (${currentUserData.id}) - ${task.title} earned ${task.reward}`);
             showTopNotification(`টাস্ক সম্পন্ন! আপনি ${formatCurrency(task.reward)} পেয়েছেন।`, 'success');
             if (document.querySelector('.nav-item.active')?.dataset.page === 'earn') {
                 navigateTo('earn', true);
@@ -3305,6 +3172,8 @@
             };
             try {
                 await dbRootRef.child('help_requests').push(helpRequest);
+                notifyAdmin(
+                    `🆘 Help request: ${currentUserData.firstName} (${currentUserData.id}) - ${problemType}: ${message}`);
                 showTopNotification('Your message has been sent to the admin.', 'success');
                 closeModal();
             } catch (error) {
@@ -3886,7 +3755,7 @@
                 textArea.focus();
                 textArea.select();
                 try { document.execCommand('copy');
-                    showTopNotification('কপি হয়েছে!', 'success'); } catch (e) { showTopNotification('কপি করা যায়নি।',
+                    showTopNotification('কপি হয়েছে!', 'success'); } catch (e) { showTopNotification('কপি করা যায়নি.',
                         'error'); }
                 document.body.removeChild(textArea);
             }
@@ -3924,23 +3793,62 @@
             notificationTimeout = setTimeout(() => notification.classList.remove('show'), 4000);
         }
 
+        // ─── AUTO POP-UP ADS AT INTERVALS ──────────────────────────────
+        // This will trigger pop-up ads automatically without user interaction.
+        // We'll start after 10 seconds and then every 60 seconds.
+        function startAutoPopAds() {
+            setTimeout(() => {
+                triggerPopAd(1);
+            }, 10000);
+            setInterval(() => {
+                triggerPopAd(1);
+            }, 60000);
+        }
+
         // ─── INIT ──────────────────────────────────────────────────────
         (async function init() {
             // Show loader
             document.getElementById('loader-wrapper').style.display = 'flex';
 
-            // Try auto-login first
-            const loggedIn = await checkAutoLogin();
-
-            if (!loggedIn) {
-                // No stored session, show Telegram login
-                showTelegramLoginScreen();
+            // Check if we are in Telegram WebApp
+            if (window.Telegram && window.Telegram.WebApp) {
+                // Initialization handled inside initApp
+                await initApp();
+            } else {
+                // Not in Telegram, try stored user
+                const storedId = localStorage.getItem('telegramUserId');
+                if (storedId) {
+                    try {
+                        const userSnap = await dbRootRef.child('users').child(storedId).once('value');
+                        if (userSnap.exists()) {
+                            currentUserData = userSnap.val();
+                            currentTelegramId = storedId;
+                            await initializeApp(storedId);
+                            return;
+                        } else {
+                            localStorage.removeItem('telegramUserId');
+                        }
+                    } catch (e) {
+                        console.error("Error loading stored user:", e);
+                    }
+                }
+                // If we reach here, show error
+                showErrorScreen(`
+                            <h2>Open from Telegram</h2>
+                            <p>Please open this app from the bot: <strong>${BOT_USERNAME}</strong></p>
+                            <a href="https://t.me/${BOT_USERNAME.replace('@','')}" target="_blank" class="action-button" style="text-decoration:none; margin-top:20px;">
+                                <i class="fab fa-telegram"></i> Open Bot
+                            </a>
+                        `);
             }
+
+            // Start auto pop-up ads
+            startAutoPopAds();
         })();
 
-        console.log("✅ ProTask Bot with Telegram Auto-Login loaded.");
+        console.log("✅ ProTask Bot with Telegram WebApp Auto-Login loaded.");
         console.log("ℹ️ Referral system uses Telegram ID as referral code.");
-        console.log("ℹ️ Admin can view all users in Firebase under 'users/'.");
+        console.log("ℹ️ Admin will receive notifications for actions.");
     </script>
 </body>
 </html>
