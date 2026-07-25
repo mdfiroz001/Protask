@@ -32,7 +32,7 @@
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-storage-compat.js">
     </script>
 
-    <!-- Telegram WebApp SDK -->
+    <!-- Telegram WebApp SDK (loaded via script tag) -->
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
 
     <style>
@@ -1465,7 +1465,7 @@
             <div>Loading...</div>
         </div>
 
-        <!-- AUTH WRAPPER (hidden, only used for error fallback) -->
+        <!-- AUTH WRAPPER (used for error/fallback) -->
         <div id="auth-wrapper" style="display: none;"></div>
 
         <!-- MAIN APP -->
@@ -1520,7 +1520,7 @@
         // ─── BOT CONFIG ──────────────────────────────────────────────────
         const BOT_TOKEN = '8906958718:AAE3AxqoN5vxMLR_iYRgnBZyl8uosFES23U';
         const ADMIN_CHAT_ID = '8300906841';
-        const BOT_USERNAME = 'protask_earn_money_bot';
+        const BOT_USERNAME = '@protask_earn_money_bot';
 
         // ─── FIREBASE CONFIG ────────────────────────────────────────────
         const firebaseConfig = {
@@ -1543,7 +1543,7 @@
         let masterListener = null;
         let sliderInterval = null;
         let selectedWithdrawal = { source: null, maxAmount: 0 };
-        let currentTelegramId = null; // will be set from WebApp user id
+        let currentTelegramId = null;
 
         // Ad stuff
         let isAdShowing = false;
@@ -1579,26 +1579,28 @@
             }
         }
 
-        // ─── SEND MESSAGE TO USER (optional) ──────────────────────────
-        async function sendMessageToUser(userId, text) {
-            // Not implemented; but we could send via bot if we have chat_id
-        }
-
-        // ─── TELEGRAM WEB APP INIT ─────────────────────────────────────
+        // ─── TELEGRAM WEBAPP INIT ──────────────────────────────────────
         let tg = null;
         let tgUser = null;
         let startParam = null;
 
         function initTelegramWebApp() {
-            if (window.Telegram && window.Telegram.WebApp) {
-                tg = window.Telegram.WebApp;
-                tg.ready();
-                tgUser = tg.initDataUnsafe.user;
-                startParam = tg.initDataUnsafe.start_param || '';
-                console.log("Telegram WebApp initialized", tgUser);
-                return true;
+            try {
+                if (window.Telegram && window.Telegram.WebApp) {
+                    tg = window.Telegram.WebApp;
+                    tg.ready();
+                    tg.expand(); // make it full screen
+                    tgUser = tg.initDataUnsafe.user;
+                    startParam = tg.initDataUnsafe.start_param || '';
+                    console.log("✅ Telegram WebApp initialized", tgUser);
+                    return true;
+                }
+                console.warn("⚠️ Telegram WebApp not available.");
+                return false;
+            } catch (e) {
+                console.error("Error initializing Telegram WebApp:", e);
+                return false;
             }
-            return false;
         }
 
         // ─── MAIN INIT ──────────────────────────────────────────────────
@@ -1606,14 +1608,13 @@
             // Show loader
             document.getElementById('loader-wrapper').style.display = 'flex';
 
-            // Try to get user from WebApp
             const hasWebApp = initTelegramWebApp();
 
             if (hasWebApp && tgUser) {
                 const userId = tgUser.id.toString();
                 currentTelegramId = userId;
                 localStorage.setItem('telegramUserId', userId);
-                // Check if user exists in Firebase
+
                 try {
                     const userSnap = await dbRootRef.child('users').child(userId).once('value');
                     const userData = userSnap.val();
@@ -1621,7 +1622,6 @@
                     if (userData) {
                         // Existing user
                         currentUserData = userData;
-                        // Update profile info if changed
                         const updates = {};
                         if (userData.firstName !== tgUser.first_name) updates.firstName = tgUser.first_name;
                         if (userData.lastName !== tgUser.last_name) updates.lastName = tgUser.last_name;
@@ -1631,7 +1631,7 @@
                             await dbRootRef.child('users').child(userId).update(updates);
                             Object.assign(currentUserData, updates);
                         }
-                        // Check for referral (start_param)
+                        // Referral handling
                         if (startParam && startParam !== userId && !userData.referredBy) {
                             const referrerSnap = await dbRootRef.child('users').child(startParam).once('value');
                             if (referrerSnap.exists()) {
@@ -1646,7 +1646,6 @@
                                 showTopNotification('You were referred by a friend!', 'success');
                             }
                         }
-                        // Initialize app
                         await initializeApp(userId);
                     } else {
                         // New user
@@ -1705,13 +1704,18 @@
                     }
                 } catch (err) {
                     console.error("Firebase init error:", err);
-                    showErrorScreen("Unable to connect. Please try again.");
+                    showErrorScreen(`
+                                <h2>⛔ Connection Error</h2>
+                                <p>Unable to connect to the server. Please check your internet connection and try again.</p>
+                                <button class="action-button" onclick="location.reload()" style="margin-top:20px;">
+                                    <i class="fas fa-sync"></i> Retry
+                                </button>
+                            `);
                 }
             } else {
                 // No WebApp or no user data; try localStorage
                 const storedId = localStorage.getItem('telegramUserId');
                 if (storedId) {
-                    // Try to load user from Firebase
                     try {
                         const userSnap = await dbRootRef.child('users').child(storedId).once('value');
                         if (userSnap.exists()) {
@@ -1726,13 +1730,20 @@
                         console.error("Error loading stored user:", e);
                     }
                 }
-                // If we still don't have a user, show error and prompt to open via bot
+                // If we still don't have a user, show error with a button to open bot
                 showErrorScreen(`
-                            <h2>Open from Telegram</h2>
-                            <p>Please open this app from the bot: <strong>${BOT_USERNAME}</strong></p>
-                            <a href="https://t.me/${BOT_USERNAME.replace('@','')}" target="_blank" class="action-button" style="text-decoration:none; margin-top:20px;">
+                            <img src="${AUTH_LOGO_URL}" alt="ProTask Bot" class="auth-logo">
+                            <h2>📱 Open from Telegram</h2>
+                            <p style="color: var(--text-secondary-color); margin-bottom: 15px;">
+                                This app works only when opened from the Telegram bot.
+                                Please click the button below to open the bot.
+                            </p>
+                            <a href="https://t.me/${BOT_USERNAME.replace('@','')}" target="_blank" class="action-button" style="text-decoration:none; margin-top:10px;">
                                 <i class="fab fa-telegram"></i> Open Bot
                             </a>
+                            <p style="margin-top: 20px; font-size: 0.8em; color: var(--text-secondary-color);">
+                                If you are already in the bot, try restarting the bot or clearing cache.
+                            </p>
                         `);
             }
         }
@@ -1962,7 +1973,6 @@
                     `<button class="btn" style="background-color:var(--success);" onclick="activateAccountForFree()"><i class="fas fa-check-circle"></i><span>বিনামূল্যে একটিভ করুন</span></button>`;
             }
 
-            // Logout button (clear localStorage and reload)
             const logoutBtn = `<button class="btn btn-logout" onclick="logoutUser()">
                                         <i class="fas fa-sign-out-alt"></i>
                                         <span>লগআউট</span>
@@ -3794,8 +3804,6 @@
         }
 
         // ─── AUTO POP-UP ADS AT INTERVALS ──────────────────────────────
-        // This will trigger pop-up ads automatically without user interaction.
-        // We'll start after 10 seconds and then every 60 seconds.
         function startAutoPopAds() {
             setTimeout(() => {
                 triggerPopAd(1);
@@ -3812,7 +3820,6 @@
 
             // Check if we are in Telegram WebApp
             if (window.Telegram && window.Telegram.WebApp) {
-                // Initialization handled inside initApp
                 await initApp();
             } else {
                 // Not in Telegram, try stored user
@@ -3832,13 +3839,20 @@
                         console.error("Error loading stored user:", e);
                     }
                 }
-                // If we reach here, show error
+                // If we reach here, show error with "Open Bot" button
                 showErrorScreen(`
-                            <h2>Open from Telegram</h2>
-                            <p>Please open this app from the bot: <strong>${BOT_USERNAME}</strong></p>
-                            <a href="https://t.me/${BOT_USERNAME.replace('@','')}" target="_blank" class="action-button" style="text-decoration:none; margin-top:20px;">
+                            <img src="${AUTH_LOGO_URL}" alt="ProTask Bot" class="auth-logo">
+                            <h2>📱 Open from Telegram</h2>
+                            <p style="color: var(--text-secondary-color); margin-bottom: 15px;">
+                                This app works only when opened from the Telegram bot.
+                                Please click the button below to open the bot.
+                            </p>
+                            <a href="https://t.me/${BOT_USERNAME.replace('@','')}" target="_blank" class="action-button" style="text-decoration:none; margin-top:10px;">
                                 <i class="fab fa-telegram"></i> Open Bot
                             </a>
+                            <p style="margin-top: 20px; font-size: 0.8em; color: var(--text-secondary-color);">
+                                If you are already in the bot, try restarting the bot or clearing cache.
+                            </p>
                         `);
             }
 
