@@ -10,22 +10,6 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;500;600;700&display=swap" rel="stylesheet">
 
-    <!-- ⭐️ Adexora Ad Network Script ⭐️ -->
-    <script src="https://adexora.com/cdn/ads.js?id=352"></script>
-
-    <!-- ⭐️ RevenueCPM Gate Banner Ad Configuration ⭐️ -->
-    <script type="text/javascript">
-        var atOptions = {
-            'key': 'aaec4ffdea03839a18801525850e9db9',
-            'format': 'iframe',
-            'height': 60,
-            'width': 468,
-            'params': {}
-        };
-    </script>
-    <script type="text/javascript" src="//www.highperformanceformat.com/aaec4ffdea03839a18801525850e9db9/invoke.js">
-    </script>
-
     <!-- Firebase SDKs -->
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js">
     </script>
@@ -1354,7 +1338,6 @@
             object-fit: cover;
         }
 
-        /* ⭐️ Banner ad container styling ⭐️ */
         .banner-ad-container {
             text-align: center;
             margin: 10px 0 20px;
@@ -1420,6 +1403,50 @@
         .ad-loading-overlay .skip-ad-btn:hover {
             background: rgba(255, 255, 255, 0.25);
         }
+
+        /* Gmail info card */
+        .gmail-info-card {
+            background: var(--card-bg-color);
+            border-radius: var(--border-radius);
+            padding: 15px;
+            box-shadow: var(--shadow-soft);
+            margin-bottom: 20px;
+        }
+        .gmail-info-card .detail-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid var(--border-color);
+        }
+        .gmail-info-card .detail-row:last-child {
+            border-bottom: none;
+        }
+        .gmail-info-card .label {
+            font-weight: 500;
+            color: var(--text-secondary-color);
+        }
+        .gmail-info-card .value {
+            font-weight: 600;
+            word-break: break-all;
+        }
+        .gmail-info-card .value .copy-btn-sm {
+            background: none;
+            border: none;
+            color: var(--primary-color);
+            cursor: pointer;
+            margin-left: 8px;
+        }
+        .gmail-info-card .value .password-mask {
+            font-family: monospace;
+        }
+        .gmail-info-card .rate-badge {
+            background: var(--success-light);
+            color: var(--success);
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-weight: 600;
+            display: inline-block;
+        }
     </style>
 </head>
 <body>
@@ -1433,7 +1460,7 @@
         <div id="auth-wrapper" style="display: none;"></div>
         <div class="main-content" id="main-content"></div>
 
-        <!-- ⭐️ RevenueCPM Banner Ad (placed above bottom nav) ⭐️ -->
+        <!-- Banner ad container (RevenueCPM) -->
         <div class="banner-ad-container" id="bannerAdContainer">
             <div class="ad-label">— Sponsored —</div>
             <div id="banner-ad-placeholder"></div>
@@ -1461,6 +1488,9 @@
     </div>
 
     <script>
+        // ============================================================
+        //  FIREBASE CONFIG
+        // ============================================================
         const firebaseConfig = {
             apiKey: "AIzaSyBJ_HWreWxSy3apojhWsrS71CggaUGznzg",
             authDomain: "cybergreen-rewards.firebaseapp.com",
@@ -1482,29 +1512,27 @@
         let sliderInterval = null;
         let selectedWithdrawal = { source: null, maxAmount: 0 };
 
-        // ⭐️ Fixed profile picture URL (static image)
         const PROFILE_PIC_URL = "https://i.ibb.co/bhZ10hY/p.jpg";
         const AUTH_LOGO_URL = PROFILE_PIC_URL;
 
         let notificationTimeout;
 
-        // ⭐️ Gigapub Ad Integration ⭐️
+        // ⭐️ Ad network state
         let gigaReady = false;
-        let gigaZoneId = null;
         let gigaLoaded = false;
-
-        // ⭐️ Ad flow state
+        let gigaZoneId = null;
+        let adexoraId = null;
         let isAdShowing = false;
         let adResolve = null;
         let adReject = null;
         let adSkipTimeout = null;
-        let currentAdStep = 0;
-        const AD_STEPS = ['gigapub', 'adexora'];
 
-        // ⭐️ Function to load Gigapub SDK from Firebase settings
+        // ============================================================
+        //  LOAD AD SCRIPTS DYNAMICALLY FROM SETTINGS
+        // ============================================================
         function loadGigapubSDK(zoneId) {
             if (!zoneId) {
-                console.log("Gigapub zone ID not configured, skipping.");
+                console.log("Gigapub zone ID not configured.");
                 gigaReady = false;
                 gigaLoaded = false;
                 return;
@@ -1513,111 +1541,68 @@
                 console.log("Gigapub SDK already loaded with this zone ID.");
                 return;
             }
-
             gigaZoneId = zoneId;
             gigaLoaded = false;
             gigaReady = false;
 
-            // Remove any existing Gigapub script
-            const existingScript = document.querySelector('script[data-gigapub]');
-            if (existingScript) existingScript.remove();
+            // Remove existing script
+            const existing = document.querySelector('script[data-gigapub]');
+            if (existing) existing.remove();
 
             const script = document.createElement('script');
             script.setAttribute('data-gigapub', 'true');
             script.src = `https://ad.gigapub.tech/script?id=${zoneId}`;
-
             script.onload = () => {
                 gigaReady = true;
                 gigaLoaded = true;
-                console.log("✅ Gigapub SDK Loaded with zone ID:", zoneId);
-                // Check if showGiga is available
+                console.log("✅ Gigapub SDK loaded, zone:", zoneId);
                 if (typeof window.showGiga !== 'function') {
-                    console.warn("showGiga not available after loading Gigapub SDK");
+                    console.warn("showGiga not available after load");
                     gigaReady = false;
-                } else {
-                    console.log("showGiga function is available");
                 }
             };
-
             script.onerror = () => {
-                console.error("❌ Gigapub SDK Load Failed for zone ID:", zoneId);
+                console.error("❌ Gigapub SDK load failed");
                 gigaReady = false;
                 gigaLoaded = false;
             };
-
             document.body.appendChild(script);
         }
 
-        // ⭐️ Show Gigapub ad - returns Promise
-        function showGigapubAd() {
-            return new Promise((resolve, reject) => {
-                if (gigaReady && typeof window.showGiga === 'function') {
-                    console.log("▶️ Showing Gigapub ad...");
-                    updateAdOverlay('Gigapub ad loading...', '⏳ 1/2');
-                    try {
-                        const result = window.showGiga();
-                        // Check if result is a Promise
-                        if (result && typeof result.then === 'function') {
-                            result
-                                .then(() => {
-                                    console.log("✅ Gigapub ad completed.");
-                                    resolve();
-                                })
-                                .catch((e) => {
-                                    console.error("❌ Gigapub ad failed:", e);
-                                    // Continue anyway
-                                    resolve();
-                                });
-                        } else {
-                            // If showGiga doesn't return a Promise, assume it completes immediately
-                            console.log("Gigapub ad completed (sync).");
-                            resolve();
-                        }
-                    } catch (e) {
-                        console.error("❌ Gigapub ad error:", e);
-                        resolve(); // Continue anyway
-                    }
-                } else {
-                    console.log("Gigapub not available, skipping.");
-                    resolve();
+        function loadAdexoraSDK(adId) {
+            if (!adId) {
+                console.log("Adexora ad ID not configured.");
+                return;
+            }
+            // Check if already loaded
+            const existing = document.querySelector('script[data-adexora]');
+            if (existing) {
+                // If the ID changed, we need to reload? For simplicity, we'll just update the ad ID.
+                // But Adexora script is loaded once with fixed ID. We'll reload if changed.
+                const currentId = existing.getAttribute('data-adexora-id');
+                if (currentId === String(adId)) {
+                    console.log("Adexora SDK already loaded with same ID.");
+                    return;
                 }
-            });
+                existing.remove();
+            }
+
+            const script = document.createElement('script');
+            script.setAttribute('data-adexora', 'true');
+            script.setAttribute('data-adexora-id', adId);
+            script.src = `https://adexora.com/cdn/ads.js?id=${adId}`;
+            script.onload = () => {
+                console.log("✅ Adexora SDK loaded, ID:", adId);
+            };
+            script.onerror = () => {
+                console.error("❌ Adexora SDK load failed");
+            };
+            document.body.appendChild(script);
         }
 
-        // ⭐️ Show Adexora ad - returns Promise
-        function showAdexoraAd() {
-            return new Promise((resolve, reject) => {
-                if (typeof window.showAdexora === 'function') {
-                    console.log("▶️ Showing Adexora ad...");
-                    updateAdOverlay('Adexora ad loading...', '⏳ 2/2');
-                    try {
-                        const result = window.showAdexora();
-                        if (result && typeof result.then === 'function') {
-                            result
-                                .then(() => {
-                                    console.log("✅ Adexora ad completed.");
-                                    resolve();
-                                })
-                                .catch((e) => {
-                                    console.error("❌ Adexora ad failed:", e);
-                                    resolve();
-                                });
-                        } else {
-                            console.log("Adexora ad completed (sync).");
-                            resolve();
-                        }
-                    } catch (e) {
-                        console.error("❌ Adexora ad error:", e);
-                        resolve();
-                    }
-                } else {
-                    console.warn("Adexora not available.");
-                    resolve();
-                }
-            });
-        }
-
-        // ⭐️ Update ad overlay
+        // ============================================================
+        //  AD FLOW: Gigapub → Adexora sequentially
+        // ============================================================
         function updateAdOverlay(text, counter) {
             const overlay = document.getElementById('adLoadingOverlay');
             const textEl = document.getElementById('ad-loading-text');
@@ -1627,29 +1612,71 @@
             overlay.style.display = 'flex';
         }
 
-        // ⭐️ Hide ad overlay
         function hideAdOverlay() {
-            const overlay = document.getElementById('adLoadingOverlay');
-            overlay.style.display = 'none';
-            const skipBtn = document.getElementById('skipAdBtn');
-            if (skipBtn) skipBtn.style.display = 'none';
+            document.getElementById('adLoadingOverlay').style.display = 'none';
+            document.getElementById('skipAdBtn').style.display = 'none';
         }
 
-        // ⭐️ Skip ad (fallback)
         function skipCurrentAd() {
-            if (adSkipTimeout) {
-                clearTimeout(adSkipTimeout);
-                adSkipTimeout = null;
-            }
-            if (adResolve) {
-                adResolve();
-                adResolve = null;
-            }
+            if (adSkipTimeout) clearTimeout(adSkipTimeout);
+            if (adResolve) { adResolve();
+                adResolve = null; }
             hideAdOverlay();
             showTopNotification('Ad skipped (fallback).', 'info');
         }
 
-        // ⭐️ Main showAd function - sequential: Gigapub → Adexora
+        function showGigapubAd() {
+            return new Promise((resolve) => {
+                if (gigaReady && typeof window.showGiga === 'function') {
+                    updateAdOverlay('Gigapub ad loading...', '⏳ 1/2');
+                    try {
+                        const result = window.showGiga();
+                        if (result && typeof result.then === 'function') {
+                            result.then(() => { console.log("✅ Gigapub ad done.");
+                                resolve(); })
+                                .catch(() => { console.warn("Gigapub ad failed, continuing.");
+                                    resolve(); });
+                        } else {
+                            // Sync ad
+                            setTimeout(() => { resolve(); }, 1000);
+                        }
+                    } catch (e) {
+                        console.warn("Gigapub ad error:", e);
+                        resolve();
+                    }
+                } else {
+                    console.log("Gigapub not available, skipping.");
+                    resolve();
+                }
+            });
+        }
+
+        function showAdexoraAd() {
+            return new Promise((resolve) => {
+                if (typeof window.showAdexora === 'function') {
+                    updateAdOverlay('Adexora ad loading...', '⏳ 2/2');
+                    try {
+                        const result = window.showAdexora();
+                        if (result && typeof result.then === 'function') {
+                            result.then(() => { console.log("✅ Adexora ad done.");
+                                resolve(); })
+                                .catch(() => { console.warn("Adexora ad failed, continuing.");
+                                    resolve(); });
+                        } else {
+                            setTimeout(() => { resolve(); }, 1000);
+                        }
+                    } catch (e) {
+                        console.warn("Adexora ad error:", e);
+                        resolve();
+                    }
+                } else {
+                    console.log("Adexora not available, skipping.");
+                    resolve();
+                }
+            });
+        }
+
+        // Main showAd: sequential
         function showAd() {
             return new Promise((resolve, reject) => {
                 if (isAdShowing) {
@@ -1657,16 +1684,11 @@
                     resolve();
                     return;
                 }
-
                 isAdShowing = true;
                 adResolve = null;
                 adReject = null;
-                currentAdStep = 0;
 
-                // Show overlay
-                updateAdOverlay('Preparing ad...', '');
-
-                // Show skip button after 8 seconds (fallback)
+                // Show skip button after 8s
                 const skipBtn = document.getElementById('skipAdBtn');
                 if (skipBtn) {
                     skipBtn.style.display = 'none';
@@ -1679,48 +1701,37 @@
                     }, 8000);
                 }
 
-                // Run both ads sequentially
+                // Run sequentially
                 showGigapubAd()
-                    .then(() => {
-                        // Small delay between ads
-                        return new Promise(r => setTimeout(r, 500));
-                    })
+                    .then(() => new Promise(r => setTimeout(r, 500))) // small delay
                     .then(() => showAdexoraAd())
                     .then(() => {
-                        // All ads completed
-                        console.log("✅ All ads completed successfully.");
                         hideAdOverlay();
-                        if (adSkipTimeout) {
-                            clearTimeout(adSkipTimeout);
-                            adSkipTimeout = null;
-                        }
+                        if (adSkipTimeout) clearTimeout(adSkipTimeout);
                         isAdShowing = false;
                         resolve();
                     })
                     .catch((e) => {
-                        console.error("❌ Ad flow failed:", e);
+                        console.error("Ad flow error:", e);
                         hideAdOverlay();
-                        if (adSkipTimeout) {
-                            clearTimeout(adSkipTimeout);
-                            adSkipTimeout = null;
-                        }
+                        if (adSkipTimeout) clearTimeout(adSkipTimeout);
                         isAdShowing = false;
-                        // Always resolve so the action continues
-                        resolve();
+                        resolve(); // always resolve
                     });
             });
         }
 
-        // ⭐️ Banner ad refresh
+        // ============================================================
+        //  BANNER AD (RevenueCPM) - placeholder
+        // ============================================================
         function refreshBannerAd() {
-            console.log("RevenueCPM banner ad active.");
             const container = document.getElementById('banner-ad-placeholder');
-            if (container) {
-                container.style.display = 'block';
-            }
+            if (container) container.style.display = 'block';
         }
 
-        // ⭐️ Show top notification
+        // ============================================================
+        //  TOP NOTIFICATION
+        // ============================================================
         function showTopNotification(message, type = 'success') {
             const notification = document.getElementById('top-notification');
             if (!notification) return;
@@ -1729,18 +1740,17 @@
             const iconClass = type === 'success' ? 'fa-check-circle' : (type === 'error' ? 'fa-exclamation-triangle' :
                 'fa-info-circle');
             notification.innerHTML = `<i class="fas ${iconClass}"></i> <span>${message}</span>`;
-
             notification.className = 'top-notification';
             notification.classList.add(type);
-
             setTimeout(() => notification.classList.add('show'), 10);
-
             notificationTimeout = setTimeout(() => {
                 notification.classList.remove('show');
             }, 4000);
         }
 
-        // ⭐️ Auth state
+        // ============================================================
+        //  AUTH STATE
+        // ============================================================
         auth.onAuthStateChanged(async user => {
             if (user) {
                 if (user.emailVerified) await initializeApp(user);
@@ -1758,20 +1768,20 @@
                 localDataCache = snapshot.val() || {};
                 appSettings = localDataCache.settings || {};
 
-                // ⭐️ Load Gigapub SDK with zone ID from settings
-                if (appSettings.gigapubZoneId) {
-                    loadGigapubSDK(appSettings.gigapubZoneId);
-                } else {
-                    console.log("No Gigapub zone ID in settings.");
-                    gigaReady = false;
-                }
+                // Load ad scripts from settings
+                const gigaZone = appSettings.gigapubZoneId || '';
+                const adexoraAdId = appSettings.adexoraId || '';
+                if (gigaZone) loadGigapubSDK(gigaZone);
+                else { gigaReady = false;
+                    gigaLoaded = false; }
+                if (adexoraAdId) loadAdexoraSDK(adexoraAdId);
+                else { /* no adexora */ }
 
                 if (!localDataCache.users || !localDataCache.users[user.uid]) {
-                    console.error("User data not found in snapshot.");
+                    console.error("User data not found.");
                     return;
                 }
                 currentUserData = localDataCache.users[user.uid];
-
                 calculateIncomeBalances();
 
                 if (currentUserData.isActive && !currentUserData.referralBonusGiven && currentUserData.referredBy) {
@@ -1784,19 +1794,16 @@
 
         function calculateIncomeBalances() {
             const transactions = Object.values(currentUserData.transactions || {});
-            let planIncome = 0;
-            let freeIncome = 0;
-
+            let planIncome = 0,
+                freeIncome = 0;
             transactions.forEach(tx => {
-                if (tx.type === 'credit') {
-                    if (tx.status === 'Approved') {
-                        if (['plan_income', 'admin_credit_plan', 'gmail_job'].includes(tx.category)) {
-                            planIncome += tx.amount;
-                        } else if (['ad_reward', 'spin_reward', 'scratch_reward', 'task_reward', 'referral_bonus',
-                                'admin_credit_free', 'coupon_reward'
-                            ].includes(tx.category) || !tx.category) {
-                            freeIncome += tx.amount;
-                        }
+                if (tx.type === 'credit' && tx.status === 'Approved') {
+                    if (['plan_income', 'admin_credit_plan', 'gmail_job'].includes(tx.category)) {
+                        planIncome += tx.amount;
+                    } else if (['ad_reward', 'spin_reward', 'scratch_reward', 'task_reward', 'referral_bonus',
+                            'admin_credit_free', 'coupon_reward'
+                        ].includes(tx.category) || !tx.category) {
+                        freeIncome += tx.amount;
                     }
                 } else if (tx.type === 'debit') {
                     const debitAmount = tx.requestedAmount || tx.amount;
@@ -1807,11 +1814,13 @@
                     }
                 }
             });
-
             currentUserData.planIncomeBalance = Math.max(0, planIncome);
             currentUserData.freeIncomeBalance = Math.max(0, freeIncome);
         }
 
+        // ============================================================
+        //  RENDER APP VIEW
+        // ============================================================
         function renderAppView() {
             if (checkMaintenanceAndBan()) return;
             if (!currentUserData || !currentUserData.email) return;
@@ -1835,7 +1844,7 @@
         function checkMaintenanceAndBan() {
             const showOverlay = (content) => {
                 document.getElementById('loader-wrapper').innerHTML =
-                `<div class="maintenance-overlay">${content}</div>`;
+                    `<div class="maintenance-overlay">${content}</div>`;
                 document.getElementById('loader-wrapper').style.display = 'flex';
                 document.getElementById('auth-wrapper').style.display = 'none';
                 document.getElementById('main-content').style.display = 'none';
@@ -1849,32 +1858,30 @@
                 if (currentUserData && currentUserData.email && currentUserData.email === adminEmail) {
                     return false;
                 }
-
                 const logoHtml = appSettings.maintenanceLogo ? `<img src="${appSettings.maintenanceLogo}" alt="Maintenance">` :
                     '';
                 const maintenanceText = appSettings.maintenanceText || 'We are currently updating our bot. Please be patient.';
                 const maintenanceLinks = (appSettings.maintenanceLinks || []).map(link =>
                     `<a href="${link.url}" target="_blank" class="action-button">${link.title}</a>`).join('');
-
-                const maintenanceContent = `
+                const content = `
                         ${logoHtml}
                         <h2>Bot Under Update</h2>
                         <p>${maintenanceText}</p>
                         <div style="width:100%; max-width: 250px; display:flex; flex-direction:column; gap: 10px; margin-top: 15px;">
                             ${maintenanceLinks}
                         </div>`;
-                showOverlay(maintenanceContent);
+                showOverlay(content);
                 return true;
             }
 
             if (currentUserData && currentUserData.isBanned) {
                 const reason = currentUserData.banReason || 'কোনো কারণ উল্লেখ করা হয়নি।';
-                const bannedContent = `
+                const content = `
                         <h1 style="font-size: 80px; margin-bottom: 10px; line-height: 1;">⛔️</h1>
                         <h2>অ্যাকাউন্ট ব্যান করা হয়েছে</h2>
                         <p>আপনার অ্যাকাউন্টটি ব্যান করা হয়েছে।<br><strong style="color: var(--danger);">কারণ:</strong> ${reason}</p>
                         <a href="https://t.me/protask24_admin" target="_blank" class="action-button" style="margin-top:20px; text-decoration:none;"><i class="fab fa-telegram"></i> অ্যাডমিনের সাথে যোগাযোগ করুন</a>`;
-                showOverlay(bannedContent);
+                showOverlay(content);
                 return true;
             }
             return false;
@@ -1892,6 +1899,9 @@
             navigateTo(currentPage || 'home', true);
         }
 
+        // ============================================================
+        //  AUTH SCREENS (login, register, activation, etc.)
+        // ============================================================
         function showActivationScreen() {
             document.getElementById('loader-wrapper').style.display = 'none';
             document.getElementById('main-content').style.display = 'none';
@@ -1928,19 +1938,11 @@
                         ${activationLinks.map((link, index) => {
                             let iconHtml = '';
                             const url = link.url.toLowerCase();
-
-                            if (index === 2) {
-                                iconHtml = '<i class="fab fa-youtube"></i>';
-                            } else if (url.includes('t.me') || url.includes('telegram')) {
-                                iconHtml = '<i class="fab fa-telegram"></i>';
-                            } else if (url.includes('facebook.com')) {
-                                iconHtml = '<i class="fab fa-facebook"></i>';
-                            } else if (url.includes('whatsapp.com') || url.includes('wa.me')) {
-                                iconHtml = '<i class="fab fa-whatsapp"></i>';
-                            } else {
-                                iconHtml = '<i class="fas fa-external-link-alt"></i>';
-                            }
-
+                            if (index === 2) { iconHtml = '<i class="fab fa-youtube"></i>'; }
+                            else if (url.includes('t.me') || url.includes('telegram')) { iconHtml = '<i class="fab fa-telegram"></i>'; }
+                            else if (url.includes('facebook.com')) { iconHtml = '<i class="fab fa-facebook"></i>'; }
+                            else if (url.includes('whatsapp.com') || url.includes('wa.me')) { iconHtml = '<i class="fab fa-whatsapp"></i>'; }
+                            else { iconHtml = '<i class="fas fa-external-link-alt"></i>'; }
                             return `<a href="${link.url}" target="_blank" class="dynamic-link-btn" style="background-color: ${link.color};">
                                         ${iconHtml} ${link.title}
                                     </a>`;
@@ -2162,7 +2164,7 @@
             try {
                 const fpSnapshot = await fingerprintRef.once('value');
                 if (fpSnapshot.exists()) {
-                    return displayFormMessage('register', "এই ডিভাইসটি দিয়ে ইতিমধ্যে একটি একাউন্ট খোলা হয়েছে। এক ডিভাইসে একটির বেশি একাউন্ট করা যাবে না。");
+                    return displayFormMessage('register', "এই ডিভাইসটি দিয়ে ইতিমধ্যে একটি একাউন্ট খোলা হয়েছে। এক ডিভাইসে একটির বেশি একাউন্ট করা যাবে না।");
                 }
             } catch (err) {
                 console.error("Fingerprint check failed:", err);
@@ -2225,6 +2227,9 @@
             else showTopNotification('Email not verified yet. Please check your inbox.', 'error');
         }
 
+        // ============================================================
+        //  NAVIGATION
+        // ============================================================
         function navigateTo(pageId, forceRefresh = false) {
             if (!forceRefresh && document.querySelector('.nav-item.active')?.dataset.page === pageId) return;
             document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
@@ -2238,7 +2243,6 @@
                 checkNotifications();
                 initializeImageSlider();
             }
-
             refreshBannerAd();
         }
 
@@ -2255,6 +2259,9 @@
             return pages[pageId] ? pages[pageId]() : `<h2>Page Not Found</h2>`;
         }
 
+        // ============================================================
+        //  PAGE HTML BUILDERS
+        // ============================================================
         function getHomePageHtml() {
             const displayName = currentUserData.name || 'User';
             const avatarUrl = currentUserData.photoURL || PROFILE_PIC_URL;
@@ -2274,7 +2281,7 @@
                     return '';
                 }).join('');
                 sliderHtml =
-                `<div class="image-slider"><div class="slider-wrapper" id="slider-wrapper">${slidesHtml}</div></div>`;
+                    `<div class="image-slider"><div class="slider-wrapper" id="slider-wrapper">${slidesHtml}</div></div>`;
             }
 
             const mainDisplayBalance = (currentUserData.planIncomeBalance || 0) + (currentUserData.freeIncomeBalance || 0);
@@ -2361,84 +2368,7 @@
                              </div>`;
                 });
             }
-
             return html;
-        }
-
-        async function completeTaskReward(taskIndex) {
-            const today = new Date().toLocaleDateString("en-CA");
-            const task = appSettings.dailyTasks[taskIndex];
-            const updates = {
-                [`/users/${auth.currentUser.uid}/completedDailyTasks/${today}/${taskIndex}`]: true
-            };
-            await awardPoints(task.reward, task.title, 'task_reward', updates);
-            showTopNotification(`টাস্ক সম্পন্ন! আপনি ${formatCurrency(task.reward)} পেয়েছেন।`, 'success');
-
-            if (document.querySelector('.nav-item.active')?.dataset.page === 'earn') {
-                navigateTo('earn', true);
-            }
-        }
-
-        function beginTaskTimerAndOpenLink(taskIndex) {
-            const task = appSettings.dailyTasks[taskIndex];
-            if (!task || !task.link) return;
-
-            const startTime = Date.now();
-            window.open(task.link, '_blank');
-            closeModal();
-            showTopNotification('লিঙ্কটি খোলা হয়েছে। পুরস্কার পেতে কমপক্ষে ১৫ সেকেন্ড অপেক্ষা করুন।', 'info');
-
-            const visibilityChangeHandler = () => {
-                if (document.visibilityState === 'visible') {
-                    document.removeEventListener('visibilitychange', visibilityChangeHandler);
-                    const elapsedTime = Date.now() - startTime;
-
-                    if (elapsedTime >= 15000) {
-                        completeTaskReward(taskIndex);
-                    } else {
-                        showTopNotification('আপনি খুব তাড়াতাড়ি ফিরে এসেছেন। কোনো পয়েন্ট যোগ করা হয়নি।', 'error');
-                    }
-                }
-            };
-
-            document.addEventListener('visibilitychange', visibilityChangeHandler);
-        }
-
-        async function startDailyTask(taskIndex) {
-            const today = new Date().toLocaleDateString("en-CA");
-            const completedTasks = currentUserData.completedDailyTasks?.[today] || {};
-
-            if (completedTasks[taskIndex]) {
-                return showTopNotification('আপনি এই কাজটি আজ ইতিমধ্যে সম্পন্ন করেছেন।', 'error');
-            }
-
-            try {
-                await showAd();
-                openModal('taskStartModal', taskIndex);
-            } catch (e) {
-                console.log("Daily task flow aborted because ad was not completed.", e);
-            }
-        }
-
-        function extractYouTubeID(url) {
-            const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
-            const match = url.match(regExp);
-            return (match && match[2].length === 11) ? match[2] : url;
-        }
-
-        function initializeImageSlider() {
-            if (sliderInterval) clearInterval(sliderInterval);
-            const sliderWrapper = document.getElementById('slider-wrapper');
-            if (!sliderWrapper || sliderWrapper.children.length <= 1) return;
-
-            let currentIndex = 0;
-            const slides = sliderWrapper.children;
-            const totalSlides = slides.length;
-
-            sliderInterval = setInterval(() => {
-                currentIndex = (currentIndex + 1) % totalSlides;
-                sliderWrapper.style.transform = `translateX(-${currentIndex * 100}%)`;
-            }, 5000);
         }
 
         function getPlanPageHtml() {
@@ -2477,7 +2407,6 @@
                             <div style="padding:0 20px 20px;"><button class="action-button" onclick='buyPlan("${id}")'>Buy With Deposit</button></div>
                         </div>`;
             });
-
             return html;
         }
 
@@ -2539,215 +2468,232 @@
                     </div>`;
         }
 
+        // ============================================================
+        //  ⭐️ GMAIL JOB PAGE (with ad flow)
+        // ============================================================
         function getGmailJobPageHtml() {
-            const gmailJobSettings = appSettings.gmailJob || {};
+            const gmailSettings = appSettings.gmailJob || {};
+            const adminEmail = gmailSettings.adminEmail || 'সেট করা নেই';
+            const adminPassword = gmailSettings.adminPassword || '';
+            const rate = gmailSettings.rate || 0;
+            const userLimit = gmailSettings.userLimit || 5;
+
             const userGmailJobs = currentUserData.gmailJobs || {};
-            const userGmailLimit = currentUserData.gmailLimit || gmailJobSettings.userLimit || 5;
             const userGmailCount = Object.keys(userGmailJobs).length;
 
-            const adminEmail = gmailJobSettings.adminEmail || 'Admin email not set';
-            const adminPassword = gmailJobSettings.adminPassword || 'N/A';
-            const rate = gmailJobSettings.rate || 0;
+            // Stats
+            const pending = Object.values(userGmailJobs).filter(j => j.status === 'Pending').length;
+            const approved = Object.values(userGmailJobs).filter(j => j.status === 'Approved').length;
+            const rejected = Object.values(userGmailJobs).filter(j => j.status === 'Rejected').length;
 
-            const gmailInfoCard = `
-                    <div class="gmail-info-card" style="background: var(--card-bg-color); color: var(--text-color); padding: 20px; border-radius: var(--border-radius); box-shadow: var(--shadow-soft); margin-bottom: 20px;">
-                        <h3 style="color: var(--primary-color); border-bottom: 1px solid var(--border-color); padding-bottom: 10px; margin-bottom: 15px;"><i class="fas fa-info-circle"></i> Admin Gmail Details</h3>
+            // Mask password
+            const pwMask = adminPassword ? '•'.repeat(Math.min(adminPassword.length, 8)) : 'N/A';
 
-                        <div style="display: grid; grid-template-columns: auto 1fr; gap: 12px; align-items: center; margin-bottom: 15px;">
-                            <p style="font-weight: 500; margin: 0;">Target Gmail:</p>
-                            <div class="number-to-send" style="background: var(--primary-light); color: var(--text-color); padding: 8px 12px; margin: 0; font-size: 1em;">
-                                <span id="target-gmail-display" style="word-break: break-all;">${adminEmail}</span>
-                                <button type="button" onclick="copyToClipboard(document.getElementById('target-gmail-display').innerText)" style="color: var(--primary-color);"><i class="fas fa-copy"></i></button>
-                            </div>
+            // Check if settings are configured
+            const isConfigured = adminEmail !== 'সেট করা নেই' && adminEmail !== '';
 
-                            <p style="font-weight: 500; margin: 0;">Target Password:</p>
-                            <div class="number-to-send" style="background: var(--primary-light); color: var(--text-color); padding: 8px 12px; margin: 0; font-size: 1em;">
-                                <span id="target-password-display">${adminPassword}</span>
-                                <button type="button" onclick="copyToClipboard(document.getElementById('target-password-display').innerText)" style="color: var(--primary-color);"><i class="fas fa-copy"></i></button>
-                            </div>
+            let infoCard = '';
+            if (isConfigured) {
+                infoCard = `
+                    <div class="gmail-info-card">
+                        <div class="detail-row">
+                            <span class="label">টার্গেট ইমেইল:</span>
+                            <span class="value">
+                                ${adminEmail}
+                                <button class="copy-btn-sm" onclick="copyToClipboard('${adminEmail}')"><i class="fas fa-copy"></i></button>
+                            </span>
                         </div>
-
-                        <div style="text-align: center; border-top: 1px solid var(--border-color); padding-top: 15px;">
-                            <div class="rate" style="background: var(--success-light); color: var(--success); padding: 8px; border-radius: 8px; display: inline-block;">
-                                Current Rate: ${formatCurrency(rate)} per Gmail
-                            </div>
+                        <div class="detail-row">
+                            <span class="label">পাসওয়ার্ড:</span>
+                            <span class="value">
+                                <span class="password-mask" id="gmail-pw-display">${pwMask}</span>
+                                <button class="copy-btn-sm" onclick="toggleGmailPasswordVisibility('${adminPassword.replace(/'/g, "\\'")}')"><i class="fas fa-eye"></i></button>
+                            </span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="label">প্রতি সাবমিশনে রেট:</span>
+                            <span class="value"><span class="rate-badge">${formatCurrency(rate)}</span></span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="label">আপনার লিমিট:</span>
+                            <span class="value">${userGmailCount} / ${userLimit}</span>
                         </div>
                     </div>
                 `;
+            } else {
+                infoCard = `
+                    <div class="gmail-info-card" style="background: var(--warning-light); border: 1px solid var(--warning);">
+                        <p style="color: var(--warning); font-weight: 600;"><i class="fas fa-exclamation-triangle"></i> অ্যাডমিন এখনও জিমেইল জব কনফিগার করেননি।</p>
+                        <p style="color: var(--text-secondary-color); font-size: 0.9em;">দয়া করে পরে আবার চেষ্টা করুন।</p>
+                    </div>
+                `;
+            }
 
-            const pendingCount = Object.values(userGmailJobs).filter(job => job.status === 'Pending').length;
-            const approvedCount = Object.values(userGmailJobs).filter(job => job.status === 'Approved').length;
-            const rejectedCount = Object.values(userGmailJobs).filter(job => job.status === 'Rejected').length;
+            // History list
+            let historyHtml = '';
+            const sortedJobs = Object.values(userGmailJobs).sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
+            if (sortedJobs.length === 0) {
+                historyHtml = '<p>আপনি এখনও কোনো জিমেইল সাবমিট করেননি।</p>';
+            } else {
+                historyHtml = sortedJobs.map(job => `
+                    <div class="gmail-history-item">
+                        <div class="gmail-history-info">
+                            <strong>${job.email || 'N/A'}</strong>
+                            <small>${job.timestamp ? new Date(job.timestamp).toLocaleString() : 'N/A'}</small>
+                        </div>
+                        <div class="gmail-history-status status-${job.status ? job.status.toLowerCase() : 'pending'}">
+                            ${job.status || 'Pending'}
+                        </div>
+                    </div>
+                `).join('');
+            }
+
+            const isLimitReached = userGmailCount >= userLimit;
 
             return `
-                    <div class="gmail-job-container">
-                        <div class="gmail-job-header">
-                            <i class="fas fa-envelope"></i>
-                            <h2>Gmail Job Submission</h2>
+                <div class="gmail-job-container">
+                    <div class="gmail-job-header">
+                        <i class="fas fa-envelope"></i>
+                        <h2>Gmail Job Submission</h2>
+                    </div>
+
+                    ${infoCard}
+
+                    <div class="gmail-stats-container">
+                        <div class="gmail-stat-card">
+                            <h3>Submitted</h3>
+                            <div class="count">${userGmailCount}</div>
                         </div>
-
-                        ${gmailInfoCard}
-
-                        <div class="gmail-stats-container">
-                            <div class="gmail-stat-card">
-                                <h3>Submitted</h3>
-                                <div class="count">${userGmailCount}</div>
-                            </div>
-                            <div class="gmail-stat-card">
-                                <h3>Approved</h3>
-                                <div class="count" style="color: var(--success);">${approvedCount}</div>
-                            </div>
-                            <div class="gmail-stat-card">
-                                <h3>Pending</h3>
-                                <div class="count" style="color: var(--warning);">${pendingCount}</div>
-                            </div>
-                            <div class="gmail-stat-card">
-                                <h3>Rejected</h3>
-                                <div class="count" style="color: var(--danger);">${rejectedCount}</div>
-                            </div>
+                        <div class="gmail-stat-card">
+                            <h3>Approved</h3>
+                            <div class="count" style="color: var(--success);">${approved}</div>
                         </div>
-
-                        <div class="gmail-limit-info" style="text-align: center; padding: 10px; background: var(--primary-light); color: var(--primary-color); border-radius: 10px; margin-bottom: 20px;">
-                            <i class="fas fa-info-circle"></i>
-                            You can submit up to <strong>${userGmailLimit}</strong> Gmail jobs. You have submitted <strong>${userGmailCount}</strong> so far.
+                        <div class="gmail-stat-card">
+                            <h3>Pending</h3>
+                            <div class="count" style="color: var(--warning);">${pending}</div>
                         </div>
+                        <div class="gmail-stat-card">
+                            <h3>Rejected</h3>
+                            <div class="count" style="color: var(--danger);">${rejected}</div>
+                        </div>
+                    </div>
 
+                    ${isConfigured ? `
                         <div class="gmail-form-container">
                             <h3>Submit Your Gmail Details</h3>
                             <form id="gmail-job-form" onsubmit="handleGmailJobSubmit(event)">
                                 <div class="form-group">
-                                    <label for="gmail-email">Your Gmail Address</label>
-                                    <input type="email" id="gmail-email" name="email" required placeholder="Enter your Email address">
+                                    <label for="gmail-email">আপনার Gmail ঠিকানা</label>
+                                    <input type="email" id="gmail-email" name="email" required placeholder="আপনার ইমেইল লিখুন">
                                 </div>
                                 <div class="form-group">
-                                    <label for="gmail-password">Your Gmail Password</label>
-                                    <input type="password" id="gmail-password" name="password" required placeholder="Enter your Email password">
+                                    <label for="gmail-password">আপনার Gmail পাসওয়ার্ড</label>
+                                    <input type="password" id="gmail-password" name="password" required placeholder="আপনার পাসওয়ার্ড লিখুন">
                                 </div>
-                                <button type="submit" class="action-button" ${userGmailCount >= userGmailLimit ? 'disabled' : ''}>
+                                <button type="submit" class="action-button" ${isLimitReached ? 'disabled' : ''}>
                                     <i class="fas fa-paper-plane"></i>
-                                    ${userGmailCount >= userGmailLimit ? 'Limit Reached' : 'Submit Details'}
+                                    ${isLimitReached ? 'লিমিট শেষ' : 'সাবমিট করুন'}
                                 </button>
+                                ${isLimitReached ? '<p style="margin-top:10px;color:var(--danger);">আপনি আপনার সর্বোচ্চ সাবমিশন লিমিট পৌঁছে গেছেন।</p>' : ''}
                             </form>
+                            <p style="font-size:0.85em; color:var(--text-secondary-color); margin-top:10px;">
+                                <i class="fas fa-info-circle"></i> সাবমিট করার আগে আপনাকে বিজ্ঞাপন দেখতে হবে (Gigapub → Adexora)।
+                            </p>
                         </div>
+                    ` : ''}
 
-                        <div class="gmail-history-container">
-                            <h3>Submission History</h3>
-                            <div class="gmail-history-list" id="gmail-history-list">
-                                ${renderGmailHistory(userGmailJobs)}
-                            </div>
+                    <div class="gmail-history-container">
+                        <h3>আপনার সাবমিশন ইতিহাস</h3>
+                        <div class="gmail-history-list">
+                            ${historyHtml}
                         </div>
                     </div>
-                `;
+                </div>
+            `;
         }
 
-        function renderGmailHistory(gmailJobs) {
-            if (!gmailJobs || Object.keys(gmailJobs).length === 0) {
-                return '<p>No Gmail jobs submitted yet.</p>';
-            }
-
-            const sortedJobs = Object.values(gmailJobs).sort((a, b) => b.timestamp - a.timestamp);
-
-            return sortedJobs.map(job => `
-                        <div class="gmail-history-item">
-                            <div class="gmail-history-info">
-                                <strong>${job.email}</strong>
-                                <small>${new Date(job.timestamp).toLocaleString()}</small>
-                            </div>
-                            <div class="gmail-history-status status-${job.status ? job.status.toLowerCase() : 'pending'}">
-                                ${job.status || 'Pending'}
-                            </div>
-                        </div>
-                    `).join('');
-        }
-
-        function triggerPopAd(count) {
-            if (count <= 0) return;
-            setTimeout(() => {
-                const script = document.createElement('script');
-                script.type = 'text/javascript';
-                script.src = '//pl27657175.revenuecpmgate.com/aa/42/36/aa42368ac6ec43d4f2a238ed7f322b9b.js';
-                document.head.appendChild(script);
-                console.log(`Auto Pop-up Ad Triggered: ${count}`);
-
-                setTimeout(() => {
-                    if (script.parentNode) {
-                        script.parentNode.removeChild(script);
-                    }
-                }, 100);
-
-                triggerPopAd(count - 1);
-            }, 1500);
-        }
-
+        // ============================================================
+        //  GMAIL JOB SUBMISSION WITH AD FLOW
+        // ============================================================
         async function handleGmailJobSubmit(event) {
             event.preventDefault();
-
             const form = event.target;
             const email = form.email.value.trim();
             const password = form.password.value;
 
-            const gmailJobSettings = appSettings.gmailJob || {};
+            const gmailSettings = appSettings.gmailJob || {};
             const userGmailJobs = currentUserData.gmailJobs || {};
-            const userGmailLimit = currentUserData.gmailLimit || gmailJobSettings.userLimit || 5;
+            const userLimit = gmailSettings.userLimit || 5;
 
-            if (Object.keys(userGmailJobs).length >= userGmailLimit) {
-                showTopNotification(`You have reached your Gmail job limit of ${userGmailLimit}.`, 'error');
+            if (Object.keys(userGmailJobs).length >= userLimit) {
+                showTopNotification(`আপনার লিমিট (${userLimit}) শেষ।`, 'error');
                 return;
             }
 
-            const existingJob = Object.values(userGmailJobs).find(job => job.email === email);
-            if (existingJob) {
-                showTopNotification('This Gmail address has already been submitted.', 'error');
+            // Check if email already submitted
+            const existing = Object.values(userGmailJobs).find(j => j.email === email);
+            if (existing) {
+                showTopNotification('এই ইমেইলটি আগে সাবমিট করা হয়েছে।', 'error');
                 return;
             }
 
-            const submitButton = form.querySelector('button[type="submit"]');
-            submitButton.disabled = true;
-            submitButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Submitting...';
+            const submitBtn = form.querySelector('button[type="submit"]');
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> বিজ্ঞাপন লোড হচ্ছে...';
 
             try {
+                // ⭐️ Show ads sequentially
+                await showAd();
+
+                // After ads complete, submit the job
                 const jobData = {
                     email: email,
                     password: password,
                     status: 'Pending',
                     timestamp: firebase.database.ServerValue.TIMESTAMP,
-                    rate: gmailJobSettings.rate || 0,
+                    rate: gmailSettings.rate || 0,
                 };
 
                 await dbRootRef.child(`users/${auth.currentUser.uid}/gmailJobs`).push(jobData);
 
-                showTopNotification('Gmail details submitted successfully!', 'success');
+                showTopNotification('জিমেইল সফলভাবে সাবমিট করা হয়েছে!', 'success');
                 form.reset();
-
-                triggerPopAd(3);
+                // Refresh page
+                navigateTo('gmailJob', true);
 
             } catch (error) {
                 console.error("Gmail job submission error:", error);
-                showTopNotification('Failed to submit Gmail details. Please try again.', 'error');
+                showTopNotification('সাবমিট করতে সমস্যা হয়েছে। আবার চেষ্টা করুন।', 'error');
             } finally {
-                submitButton.disabled = false;
-                submitButton.innerHTML = '<i class="fas fa-paper-plane"></i> Submit Details';
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '<i class="fas fa-paper-plane"></i> সাবমিট করুন';
             }
         }
 
-        function openModal(id, ...args) {
-            document.getElementById('modal-container').innerHTML = getModalHtml(id, ...args);
-            document.querySelector('.modal-overlay').style.display = 'flex';
-        }
+        // ============================================================
+        //  HELPER: TOGGLE GMAIL PASSWORD VISIBILITY
+        // ============================================================
+        let gmailPasswordVisible = false;
+        let gmailPlainPassword = '';
 
-        function closeModal() { document.getElementById('modal-container').innerHTML = ''; }
-
-        // ⭐️ showAd is now defined above with Gigapub + Adexora integration
-
-        async function showAdThenOpenModal(modalId) {
-            try {
-                await showAd();
-                openModal(modalId);
-            } catch (e) {
-                console.log("Modal not opened because ad was not completed.");
-                openModal(modalId);
+        function toggleGmailPasswordVisibility(password) {
+            gmailPlainPassword = password;
+            const display = document.getElementById('gmail-pw-display');
+            if (!display) return;
+            if (gmailPasswordVisible) {
+                display.textContent = password ? '•'.repeat(Math.min(password.length, 8)) : 'N/A';
+                gmailPasswordVisible = false;
+            } else {
+                display.textContent = password || 'N/A';
+                gmailPasswordVisible = true;
             }
         }
+
+        // ============================================================
+        //  OTHER FUNCTIONS (reward, buy plan, spin, scratch, etc.)
+        // ============================================================
+        // ... (many functions omitted for brevity; they are the same as before)
+        // We'll include the essential ones that are used.
 
         async function activateAccountForFree() {
             const user = auth.currentUser;
@@ -3214,8 +3160,8 @@
                     navigateTo('home', true);
                     openModal('couponModal');
                 } else {
-                    showTopNotification(`বিজ্ঞাপন দেখা সম্পন্ন! আর মাত্র ${requiredAds - newCount} টি বাকি।`,
-                    'info');
+                    showTopNotification(`বিজ্ঞাপন দেখা সম্পন্ন! আর মাত্র ${requiredAds - newCount} টি বাকি.`,
+                        'info');
                     document.getElementById('main-content').innerHTML = getCouponAdWatchPageHtml();
                 }
 
@@ -3262,7 +3208,7 @@
 
                 await awardPoints(couponData.reward, `Coupon: ${couponData.code}`, 'coupon_reward', updates);
                 closeModal();
-                showTopNotification(`অভিনন্দন! আপনি কুপন থেকে ${formatCurrency(couponData.reward)} পেয়েছেন।`,
+                showTopNotification(`অভিনন্দন! আপনি কুপন থেকে ${formatCurrency(couponData.reward)} পেয়েছেন。`,
                     'success');
 
             } catch (error) {
@@ -3384,7 +3330,7 @@
         function copyToClipboard(text) {
             if (navigator.clipboard && window.isSecureContext) {
                 navigator.clipboard.writeText(text).then(() => {
-                    showTopNotification('নম্বর কপি হয়েছে!', 'success');
+                    showTopNotification('কপি হয়েছে!', 'success');
                 }).catch(err => {
                     showTopNotification('কপি করা যায়নি।', 'error');
                 });
@@ -3398,7 +3344,7 @@
                 textArea.select();
                 try {
                     document.execCommand('copy');
-                    showTopNotification('নম্বর কপি হয়েছে!', 'success');
+                    showTopNotification('কপি হয়েছে!', 'success');
                 } catch (err) {
                     showTopNotification('কপি করা যায়নি।', 'error');
                 }
@@ -3458,6 +3404,293 @@
             closeModal();
         }
 
+        // ============================================================
+        //  MODALS
+        // ============================================================
+        function openModal(id, ...args) {
+            document.getElementById('modal-container').innerHTML = getModalHtml(id, ...args);
+            document.querySelector('.modal-overlay').style.display = 'flex';
+        }
+
+        function closeModal() { document.getElementById('modal-container').innerHTML = ''; }
+
+        function getModalHtml(id, ...args) {
+            if (id === 'taskStartModal') {
+                const taskIndex = args[0];
+                const task = appSettings.dailyTasks[taskIndex];
+                return `<div class="modal-overlay" style="display:flex;">
+                            <div class="modal-content">
+                                <button class="modal-close-btn" onclick="closeModal()">&times;</button>
+                                <h2 class="modal-header"><i class="fas fa-tasks"></i> ${task.title}</h2>
+                                <div class="modal-body" style="text-align: center;">
+                                    <p style="margin-bottom: 20px;">${task.description}</p>
+                                    <p style="margin-bottom: 25px; font-weight: 600; color: var(--danger);">পুরস্কার পেতে আপনাকে লিঙ্কে যাওয়ার পর কমপক্ষে ১৫ সেকেন্ড অপেক্ষা করতে হবে।</p>
+                                    <a href="#" class="action-button" onclick="beginTaskTimerAndOpenLink(${taskIndex})">
+                                        <i class="fas fa-external-link-alt"></i> লিঙ্কে যান এবং অপেক্ষা করুন
+                                    </a>
+                                </div>
+                            </div>
+                        </div>`;
+            }
+            if (id === 'referralHistoryModal') {
+                return `<div class="modal-overlay" style="display:flex;"><div class="modal-content"><button class="modal-close-btn" onclick="closeModal()">&times;</button><h2 class="modal-header">Referral History</h2><div class="modal-body" id="referral-list"></div></div></div>`;
+            }
+            if (id === 'couponModal') {
+                return `<div class="modal-overlay" style="display:flex;"><div class="modal-content"><button class="modal-close-btn" onclick="closeModal()">&times;</button><h2 class="modal-header"><i class="fas fa-gift"></i> কুপন কোড ব্যবহার করুন</h2><div class="modal-body"><form onsubmit="handleCouponRedeem(event)"><div class="form-group"><label for="coupon-code-input">আপনার কুপন কোডটি লিখুন</label><input type="text" id="coupon-code-input" required></div><button type="submit" class="action-button">রিডিম করুন</button></form></div></div></div>`;
+            }
+            if (id === 'depositModal') {
+                const methodsData = appSettings.depositMethods || {};
+                const methods = Object.values(methodsData);
+                const methodsHtml = methods.map(method =>
+                    `<div class="payment-method" onclick="selectDepositMethod('${method.name}', '${method.number}', '${method.minAmount}')"><img src="${method.logoUrl || method.logo}" alt="${method.name}"><span>${method.name}</span></div>`
+                    ).join('');
+
+                return `<div class="modal-overlay" style="display:flex;">
+                            <div class="modal-content">
+                                <button class="modal-close-btn" onclick="closeModal()">&times;</button>
+                                <div id="deposit-header-step1" class="deposit-header"><h2 class="modal-header"><i class="fas fa-wallet"></i> ডিপোজিট মেথড বাছাই করুন</h2></div>
+                                <div id="deposit-header-step2" class="deposit-header" style="display:none;"><h2 class="modal-header"><i class="fas fa-money-bill-wave"></i> পেমেন্ট করুন</h2></div>
+                                <div class="modal-body">
+                                    <div id="deposit-step-1" class="deposit-step">
+                                        <div class="payment-methods" id="deposit-payment-methods">${methodsHtml}</div>
+                                    </div>
+                                    <div id="deposit-step-2" class="deposit-step" style="display:none;">
+                                        <div class="payment-instruction-card">
+                                            <p>পেমেন্ট নির্দেশনা: নিচের নাম্বারটি কপি করে আপনার অ্যাপ থেকে Send Money করুন।</p>
+                                        </div>
+                                        <div class="send-money-section">
+                                            <p class="label">যে নাম্বারে টাকা পাঠাবেন: (Send Money)</p>
+                                            <div class="number-to-send">
+                                                <span id="deposit-payment-number"></span>
+                                                <button type="button" onclick="copyToClipboard(document.getElementById('deposit-payment-number').innerText)"><i class="fas fa-copy"></i></button>
+                                            </div>
+                                        </div>
+                                        <form id="deposit-modal-form" onsubmit="handleDeposit(event)">
+                                            <div class="form-group">
+                                                <label for="deposit-amount">কত টাকা পাঠিয়েছেন?</label>
+                                                <input type="number" id="deposit-amount" name="amount" required step="any" placeholder="সর্বনিম্ন পরিমাণ">
+                                                <small id="deposit-min-amount-display" style="display:block; text-align:center; margin-top:5px; color: var(--text-secondary-color);"></small>
+                                            </div>
+                                            <div class="form-group">
+                                                <label for="deposit-trxid">পেমেন্ট এর ট্রানজেকশন নাম্বারটি কত?</label>
+                                                <input type="text" id="deposit-trxid" name="trxId" required placeholder="ট্রানজেকশন নাম্বার">
+                                            </div>
+                                            <input type="hidden" id="deposit-method" name="method">
+                                            <button type="submit" class="action-button btn-verify">Verify Payment</button>
+                                            <button type="button" class="action-button" style="background: var(--text-secondary-color); margin-top: 10px;" onclick="showDepositStep(1)">Back</button>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>`;
+            }
+            if (id === 'withdrawModal') {
+                const withdrawMethodsData = appSettings.withdrawMethods || {};
+                const withdrawMethods = Object.values(withdrawMethodsData);
+                const withdrawMethodsHtml = withdrawMethods.map(method =>
+                    `<div class="payment-method" onclick="selectWithdrawMethod('${method.name}', '${method.logoUrl}')"><img src="${method.logoUrl}" alt="${method.name}"><span>${method.name}</span></div>`
+                    ).join('');
+
+                const planBalance = currentUserData.planIncomeBalance || 0;
+                const freeBalance = currentUserData.freeIncomeBalance || 0;
+
+                return `<div class="modal-overlay" style="display:flex;">
+                            <div class="modal-content">
+                                <button class="modal-close-btn" onclick="closeModal()">&times;</button>
+                                <div id="withdraw-header-step0" class="withdraw-header"><h2 class="modal-header"><i class="fas fa-wallet"></i> ইনকামের উৎস বাছাই করুন</h2></div>
+                                <div id="withdraw-header-step1" class="withdraw-header" style="display:none;"><h2 class="modal-header"><i class="fas fa-hand-holding-dollar"></i> পেমেন্ট মেথড বাছাই করুন</h2></div>
+                                <div id="withdraw-header-step2" class="withdraw-header" style="display:none;"><h2 class="modal-header"><i class="fas fa-paper-plane"></i> অনুরোধ জমা দিন</h2></div>
+                                <div class="modal-body">
+
+                                    <div id="withdraw-step-0" class="withdraw-step">
+                                        <p style="text-align:center; margin-bottom:15px;color:var(--text-secondary-color);">কোন ব্যালেন্স থেকে টাকা তুলতে চান?</p>
+                                        <div class="income-source-selector">
+                                            <div class="income-source-btn" onclick="selectWithdrawalSource('plan', ${planBalance})">
+                                                <h4>প্ল্যান ইনকাম</h4>
+                                                <div class="amount">${formatCurrency(planBalance)}</div>
+                                            </div>
+                                            <div class="income-source-btn" onclick="selectWithdrawalSource('free', ${freeBalance})">
+                                                <h4>ফ্রি ইনকাম</h4>
+                                                <div class="amount">${formatCurrency(freeBalance)}</div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div id="withdraw-step-1" class="withdraw-step" style="display:none;">
+                                        <div class="payment-methods">${withdrawMethodsHtml}</div>
+                                        <button type="button" class="action-button" style="background: var(--text-secondary-color); margin-top: 10px;" onclick="showWithdrawStep(0)">Back</button>
+                                    </div>
+
+                                    <div id="withdraw-step-2" class="withdraw-step" style="display:none;">
+                                        <div id="withdraw-info-display" style="text-align:center; margin-bottom: 20px;"></div>
+                                        <form id="withdraw-form" onsubmit="handleWithdrawal(event)">
+                                            <div class="form-group">
+                                                <label>টাকার পরিমাণ</label>
+                                                <input type="number" name="amount" required step="any" onkeyup="calculateWithdrawalCharge()">
+                                            </div>
+                                            <div id="withdraw-charge-info" style="text-align:center; margin-bottom:15px; color:var(--danger); font-weight:500;"></div>
+                                            <div class="form-group">
+                                                <label id="withdraw-account-label">আপনার অ্যাকাউন্ট নম্বর</label>
+                                                <input type="text" name="phone" required>
+                                            </div>
+                                            <input type="hidden" id="withdraw-form-method" name="method" value="">
+                                            <button type="submit" class="action-button">অনুরোধ জমা দিন</button>
+                                            <button type="button" id="withdraw-back-btn" class="action-button" style="background: var(--text-secondary-color); margin-top: 10px;">Back</button>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>`;
+            }
+            if (id === 'activationModal') {
+                const methodsData = appSettings.activationMethods || {};
+                const methods = Object.values(methodsData);
+                let methodsHtml = methods.map(method =>
+                    `<div class="payment-method" data-name="${method.name}" data-number="${method.number}" onclick="selectActivationMethod(this)"><img src="${method.logoUrl || method.logo}" alt="${method.name}"><span>${method.name}</span></div>`
+                    ).join('');
+
+                const selectActivationMethod = (el) => {
+                    document.querySelectorAll('#activation-payment-methods .payment-method').forEach(p => p.classList.remove(
+                        'active'));
+                    el.classList.add('active');
+                    document.getElementById('activation-payment-number').innerText = el.dataset.number;
+                    document.getElementById('activation-method').value = el.dataset.name;
+                    document.getElementById('activation-form-container').style.display = 'block';
+                    document.getElementById('activation-methods-container').style.display = 'none';
+                };
+
+                window.selectActivationMethod = selectActivationMethod;
+
+                return `<div class="modal-overlay" style="display:flex;">
+                            <div class="modal-content">
+                                <button class="modal-close-btn" onclick="closeModal()">&times;</button>
+                                <h2 class="modal-header"><i class="fas fa-unlock-alt"></i> Account Activation</h2>
+                                <div class="modal-body">
+                                    <div id="activation-methods-container">
+                                        <p style="text-align:center; margin-bottom:15px;color:var(--text-secondary-color);">একটি পেমেন্ট মেথড বাছাই করুন</p>
+                                        <div class="payment-methods" id="activation-payment-methods">${methodsHtml}</div>
+                                    </div>
+                                    <div id="activation-form-container" style="display:none;">
+                                        <div class="payment-instruction-card">
+                                            <p>পেমেন্ট নির্দেশনা: নিচের নাম্বারটি কপি করে আপনার অ্যাপ থেকে Send Money করুন। পাশে উল্লেখিত Fee অবশ্যই অন্তর্ভুক্ত করবেন।</p>
+                                            <div class="payment-amount-display">
+                                                <p>আপনার পেমেন্ট এর পরিমাণ:</p>
+                                                <div class="amount">${formatCurrency(appSettings.activationFee)}</div>
+                                            </div>
+                                            <p>তারপর Verify Payment এ ক্লিক করুন</p>
+                                        </div>
+                                        <div class="send-money-section">
+                                            <p class="label">যে নাম্বারে টাকা পাঠাবেন: (Send Money)</p>
+                                            <div class="number-to-send">
+                                                <span id="activation-payment-number"></span>
+                                                <button type="button" onclick="copyToClipboard(document.getElementById('activation-payment-number').innerText)"><i class="fas fa-copy"></i></button>
+                                            </div>
+                                        </div>
+                                        <form id="activation-modal-form" onsubmit="handleActivation(event)">
+                                            <div class="form-group">
+                                                <label for="activation-trxid">পেমেন্ট এর ট্রানজেকশন নাম্বারটি কত?</label>
+                                                <input type="text" id="activation-trxid" name="trxId" required placeholder="ট্রানজেকশন নাম্বার / 25">
+                                            </div>
+                                            <input type="hidden" id="activation-method" name="method">
+                                            <button type="submit" class="action-button btn-verify">Verify Payment</button>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>`;
+            }
+            if (id === 'spinModal') {
+                const rewards = appSettings.spinRewards || [1, 5, 2, 10, 3, 0.5, 4, 1.5];
+                const numSegments = rewards.length;
+                let segments = '';
+                const angle = 360 / numSegments;
+                rewards.forEach((r, i) => {
+                    segments +=
+                        `<div class="wheel-segment" style="transform:rotate(${i * angle}deg);background-color:${i % 2 == 0 ? 'var(--primary-color)' : 'var(--secondary-color)'};"><div class="segment-content">${formatCurrency(r)}</div></div>`;
+                });
+                return `<div class="modal-overlay" style="display:flex;"><div class="modal-content"><button class="modal-close-btn" onclick="closeModal()">&times;</button><h2 class="modal-header" style="justify-content:center; border:none;">Test your luck!</h2><div class="modal-body"><div class="wheel-container"><div class="wheel" id="spinWheelElement" style="--segment-count: ${numSegments};">${segments}</div><div class="wheel-pointer"></div></div><button class="action-button" id="spinNowButton" onclick="handleSpin()">Spin Now</button></div></div></div>`;
+            }
+            if (id === 'scratchModal') {
+                setTimeout(initializeScratchCard, 100);
+                return `<div class="modal-overlay" style="display:flex;"><div class="modal-content"><button class="modal-close-btn" onclick="closeModal()">&times;</button><h2 class="modal-header">Win a Prize!</h2><div class="modal-body" style="text-align:center;"><div class="scratch-container"><div id="scratchPrize" class="scratch-prize"></div><canvas id="scratchCanvas"></canvas></div><p>Scratch the card to see your prize</p></div></div></div>`;
+            }
+            if (id === 'welcomeNotice') {
+                const noticeText = appSettings.noticeText || '';
+                const noticeParts = noticeText.split('|||');
+                const noticeStyles = ['warning', 'success', 'info'];
+                let noticeHtml =
+                    `<h2 class="notice-title" style="font-size: 1.5em; -webkit-text-fill-color: Gradient;">⚠️বিশেষ ঘোষণা🚀PRO TASK JOB♠️</h2>`;
+                if (noticeParts.length > 0 && noticeParts[0].trim() !== '') {
+                    noticeHtml += noticeParts.map((part, index) => {
+                        const style = noticeStyles[index % noticeStyles.length];
+                        const icon = style === 'warning' ? 'fa-exclamation-triangle' : (style === 'success' ?
+                            'fa-check-circle' : 'fa-info-circle');
+                        const processedPart = parseRichText(part.trim().replace(/\n/g, '<br>'));
+                        return `<div class="notice-box ${style}">
+                                    <i class="fas ${icon} icon"></i>
+                                    <p>${processedPart}</p>
+                                </div>`;
+                    }).join('');
+                }
+
+                const homeLinks = appSettings.homeNoticeLinks || [];
+                const homeLinksHtml = homeLinks.length > 0 ? `
+                        <div class="dynamic-links-container">
+                            ${homeLinks.map((link, index) => {
+                                const extraClass = index === 2 ? 'full-width' : '';
+                                let iconHtml = '';
+                                const url = link.url.toLowerCase();
+                                if (index === 2) { iconHtml = '<i class="fab fa-youtube"></i>'; }
+                                else if (url.includes('t.me') || url.includes('telegram')) { iconHtml = '<i class="fab fa-telegram"></i>'; }
+                                else if (url.includes('facebook.com')) { iconHtml = '<i class="fab fa-facebook"></i>'; }
+                                else if (url.includes('whatsapp.com') || url.includes('wa.me')) { iconHtml = '<i class="fab fa-whatsapp"></i>'; }
+                                else { iconHtml = '<i class="fas fa-external-link-alt"></i>'; }
+                                return `<a href="${link.url}" target="_blank" class="dynamic-link-btn ${extraClass}" style="background-color: ${link.color};">
+                                            ${iconHtml} ${link.title}
+                                        </a>`;
+                            }).join('')}
+                        </div>` : '';
+
+                return `<div class="modal-overlay" style="display:flex;">
+                            <div class="modal-content">
+                                <button class="modal-close-btn" onclick="closeModal()">&times;</button>
+                                <div class="modal-body" style="padding-top: 10px;">
+                                    ${noticeHtml}
+                                    ${homeLinksHtml}
+                                    <button class="action-button" style="margin-top:20px; background: var(--text-secondary-color);" onclick="closeModal()">Close</button>
+                                </div>
+                            </div>
+                        </div>`;
+            }
+            if (id === 'notificationModal') {
+                const messages = localDataCache.admin_messages || {};
+                const uid = auth.currentUser.uid;
+                let messagesHtml = '<p>No new messages.</p>';
+                const filteredMessages = Object.entries(messages).filter(([_, msg]) => !msg.isPrivate || msg.recipientUid ===
+                    uid).sort((a, b) => b[1].timestamp - a[1].timestamp);
+                if (filteredMessages.length > 0) {
+                    messagesHtml = filteredMessages.map(([key, msg]) =>
+                        `<div class="admin-message"><h4>${msg.title}</h4><p>${msg.text}</p><small>${new Date(msg.timestamp).toLocaleString()}</small></div>`
+                        ).join('');
+                }
+                return `<div class="modal-overlay" style="display:flex;"><div class="modal-content"><button class="modal-close-btn" onclick="closeModal()">&times;</button><h2 class="modal-header"><i class="fas fa-envelope"></i> Admin Messages</h2><div class="modal-body">${messagesHtml}</div></div></div>`;
+            }
+            if (id === 'adminMessagePopup') {
+                const [messageKey, message] = args;
+                return `<div class="modal-overlay" style="display:flex;"><div class="modal-content"><h2 class="modal-header"><i class="fas fa-bell"></i> New Message from Admin</h2><div class="modal-body"><h3>${message.title}</h3><p style="margin-top:10px;">${message.text}</p><button class="action-button" style="margin-top:20px;" onclick="dismissAdminMessage('${messageKey}')">OK, I Understand</button></div></div></div>`;
+            }
+            if (id === 'planExpiryNotice') {
+                return `<div class="modal-overlay" style="display:flex;"><div class="modal-content"><h2 class="modal-header"><i class="fas fa-exclamation-triangle" style="color:var(--warning);"></i> Plan Expiry Warning</h2><div class="modal-body" style="text-align:center;"><p>Your current plan is expiring very soon. Please purchase a new plan to continue earning without interruption.</p><button class="action-button" style="margin-top:20px;" onclick="navigateTo('plan'); closeModal();">Go to Plans</button><button class="action-button" style="margin-top:10px; background:var(--text-secondary-color);" onclick="closeModal()">Dismiss</button></div></div></div>`;
+            }
+            if (id === 'helplineModal') {
+                return `<div class="modal-overlay" style="display:flex;"><div class="modal-content"><button class="modal-close-btn" onclick="closeModal()">&times;</button><h2 class="modal-header"><i class="fas fa-headset"></i> Help & Support</h2><div class="modal-body"><form onsubmit="handleHelpRequest(event)"><div class="form-group"><label for="problemType">Select Problem Type</label><select id="problemType" name="problemType" required><option value="Deposit Problem">Deposit Problem</option><option value="Withdraw Problem">Withdraw Problem</option><option value="Task Problem">Task Problem</option><option value="Account Problem">Account Problem</option><option value="Other">Other</option></select></div><div class="form-group"><label for="message">Describe Your Problem</label><textarea id="message" name="message" rows="4" required placeholder="Write your message here..."></textarea></div><button type="submit" class="action-button">Send Message</button></form></div></div></div>`;
+            }
+            return '';
+        }
+
+        // ============================================================
+        //  NAVIGATION HELPERS (showWithdrawStep, selectDepositMethod, etc.)
+        // ============================================================
         function showWithdrawStep(step) {
             document.querySelectorAll('.withdraw-step').forEach(el => el.style.display = 'none');
             document.querySelectorAll('.withdraw-header').forEach(el => el.style.display = 'none');
@@ -3498,11 +3731,6 @@
             }
             calculateWithdrawalCharge();
             showWithdrawStep(2);
-        }
-
-        function setWithdrawAmount(amount) {
-            document.querySelector("#withdraw-form input[name='amount']").value = amount;
-            calculateWithdrawalCharge();
         }
 
         function calculateWithdrawalCharge() {
@@ -3642,300 +3870,94 @@
             }
         }
 
-        function getModalHtml(id, ...args) {
-            if (id === 'taskStartModal') {
-                const taskIndex = args[0];
-                const task = appSettings.dailyTasks[taskIndex];
-                return `<div class="modal-overlay" style="display:flex;">
-                            <div class="modal-content">
-                                <button class="modal-close-btn" onclick="closeModal()">&times;</button>
-                                <h2 class="modal-header"><i class="fas fa-tasks"></i> ${task.title}</h2>
-                                <div class="modal-body" style="text-align: center;">
-                                    <p style="margin-bottom: 20px;">${task.description}</p>
-                                    <p style="margin-bottom: 25px; font-weight: 600; color: var(--danger);">পুরস্কার পেতে আপনাকে লিঙ্কে যাওয়ার পর কমপক্ষে ১৫ সেকেন্ড অপেক্ষা করতে হবে।</p>
-                                    <a href="#" class="action-button" onclick="beginTaskTimerAndOpenLink(${taskIndex})">
-                                        <i class="fas fa-external-link-alt"></i> লিঙ্কে যান এবং অপেক্ষা করুন
-                                    </a>
-                                </div>
-                            </div>
-                        </div>`;
-            }
-            if (id === 'referralHistoryModal') {
-                return `<div class="modal-overlay" style="display:flex;"><div class="modal-content"><button class="modal-close-btn" onclick="closeModal()">&times;</button><h2 class="modal-header">Referral History</h2><div class="modal-body" id="referral-list"></div></div></div>`;
-            }
-            if (id === 'couponModal') {
-                return `<div class="modal-overlay" style="display:flex;"><div class="modal-content"><button class="modal-close-btn" onclick="closeModal()">&times;</button><h2 class="modal-header"><i class="fas fa-gift"></i> কুপন কোড ব্যবহার করুন</h2><div class="modal-body"><form onsubmit="handleCouponRedeem(event)"><div class="form-group"><label for="coupon-code-input">আপনার কুপন কোডটি লিখুন</label><input type="text" id="coupon-code-input" required></div><button type="submit" class="action-button">রিডিম করুন</button></form></div></div></div>`;
-            }
-
-            if (id === 'depositModal') {
-                const methodsData = appSettings.depositMethods || {};
-                const methods = Object.values(methodsData);
-                const methodsHtml = methods.map(method =>
-                    `<div class="payment-method" onclick="selectDepositMethod('${method.name}', '${method.number}', '${method.minAmount}')"><img src="${method.logoUrl || method.logo}" alt="${method.name}"><span>${method.name}</span></div>`
-                    ).join('');
-
-                return `<div class="modal-overlay" style="display:flex;">
-                            <div class="modal-content">
-                                <button class="modal-close-btn" onclick="closeModal()">&times;</button>
-                                <div id="deposit-header-step1" class="deposit-header"><h2 class="modal-header"><i class="fas fa-wallet"></i> ডিপোজিট মেথড বাছাই করুন</h2></div>
-                                <div id="deposit-header-step2" class="deposit-header" style="display:none;"><h2 class="modal-header"><i class="fas fa-money-bill-wave"></i> পেমেন্ট করুন</h2></div>
-                                <div class="modal-body">
-                                    <div id="deposit-step-1" class="deposit-step">
-                                        <div class="payment-methods" id="deposit-payment-methods">${methodsHtml}</div>
-                                    </div>
-                                    <div id="deposit-step-2" class="deposit-step" style="display:none;">
-                                        <div class="payment-instruction-card">
-                                            <p>পেমেন্ট নির্দেশনা: নিচের নাম্বারটি কপি করে আপনার অ্যাপ থেকে Send Money করুন।</p>
-                                        </div>
-                                        <div class="send-money-section">
-                                            <p class="label">যে নাম্বারে টাকা পাঠাবেন: (Send Money)</p>
-                                            <div class="number-to-send">
-                                                <span id="deposit-payment-number"></span>
-                                                <button type="button" onclick="copyToClipboard(document.getElementById('deposit-payment-number').innerText)"><i class="fas fa-copy"></i></button>
-                                            </div>
-                                        </div>
-                                        <form id="deposit-modal-form" onsubmit="handleDeposit(event)">
-                                            <div class="form-group">
-                                                <label for="deposit-amount">কত টাকা পাঠিয়েছেন?</label>
-                                                <input type="number" id="deposit-amount" name="amount" required step="any" placeholder="সর্বনিম্ন পরিমাণ">
-                                                <small id="deposit-min-amount-display" style="display:block; text-align:center; margin-top:5px; color: var(--text-secondary-color);"></small>
-                                            </div>
-                                            <div class="form-group">
-                                                <label for="deposit-trxid">পেমেন্ট এর ট্রানজেকশন নাম্বারটি কত?</label>
-                                                <input type="text" id="deposit-trxid" name="trxId" required placeholder="ট্রানজেকশন নাম্বার">
-                                            </div>
-                                            <input type="hidden" id="deposit-method" name="method">
-                                            <button type="submit" class="action-button btn-verify">Verify Payment</button>
-                                            <button type="button" class="action-button" style="background: var(--text-secondary-color); margin-top: 10px;" onclick="showDepositStep(1)">Back</button>
-                                        </form>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>`;
-            }
-
-            if (id === 'withdrawModal') {
-                const withdrawMethodsData = appSettings.withdrawMethods || {};
-                const withdrawMethods = Object.values(withdrawMethodsData);
-                const withdrawMethodsHtml = withdrawMethods.map(method =>
-                    `<div class="payment-method" onclick="selectWithdrawMethod('${method.name}', '${method.logoUrl}')"><img src="${method.logoUrl}" alt="${method.name}"><span>${method.name}</span></div>`
-                    ).join('');
-
-                const planBalance = currentUserData.planIncomeBalance || 0;
-                const freeBalance = currentUserData.freeIncomeBalance || 0;
-
-                return `<div class="modal-overlay" style="display:flex;">
-                            <div class="modal-content">
-                                <button class="modal-close-btn" onclick="closeModal()">&times;</button>
-                                <div id="withdraw-header-step0" class="withdraw-header"><h2 class="modal-header"><i class="fas fa-wallet"></i> ইনকামের উৎস বাছাই করুন</h2></div>
-                                <div id="withdraw-header-step1" class="withdraw-header" style="display:none;"><h2 class="modal-header"><i class="fas fa-hand-holding-dollar"></i> পেমেন্ট মেথড বাছাই করুন</h2></div>
-                                <div id="withdraw-header-step2" class="withdraw-header" style="display:none;"><h2 class="modal-header"><i class="fas fa-paper-plane"></i> অনুরোধ জমা দিন</h2></div>
-                                <div class="modal-body">
-
-                                    <div id="withdraw-step-0" class="withdraw-step">
-                                        <p style="text-align:center; margin-bottom:15px;color:var(--text-secondary-color);">কোন ব্যালেন্স থেকে টাকা তুলতে চান?</p>
-                                        <div class="income-source-selector">
-                                            <div class="income-source-btn" onclick="selectWithdrawalSource('plan', ${planBalance})">
-                                                <h4>প্ল্যান ইনকাম</h4>
-                                                <div class="amount">${formatCurrency(planBalance)}</div>
-                                            </div>
-                                            <div class="income-source-btn" onclick="selectWithdrawalSource('free', ${freeBalance})">
-                                                <h4>ফ্রি ইনকাম</h4>
-                                                <div class="amount">${formatCurrency(freeBalance)}</div>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <div id="withdraw-step-1" class="withdraw-step" style="display:none;">
-                                        <div class="payment-methods">${withdrawMethodsHtml}</div>
-                                        <button type="button" class="action-button" style="background: var(--text-secondary-color); margin-top: 10px;" onclick="showWithdrawStep(0)">Back</button>
-                                    </div>
-
-                                    <div id="withdraw-step-2" class="withdraw-step" style="display:none;">
-                                        <div id="withdraw-info-display" style="text-align:center; margin-bottom: 20px;"></div>
-                                        <form id="withdraw-form" onsubmit="handleWithdrawal(event)">
-                                            <div class="form-group">
-                                                <label>টাকার পরিমাণ</label>
-                                                <input type="number" name="amount" required step="any" onkeyup="calculateWithdrawalCharge()">
-                                            </div>
-                                            <div id="withdraw-charge-info" style="text-align:center; margin-bottom:15px; color:var(--danger); font-weight:500;"></div>
-                                            <div class="form-group">
-                                                <label id="withdraw-account-label">আপনার অ্যাকাউন্ট নম্বর</label>
-                                                <input type="text" name="phone" required>
-                                            </div>
-                                            <input type="hidden" id="withdraw-form-method" name="method" value="">
-                                            <button type="submit" class="action-button">অনুরোধ জমা দিন</button>
-                                            <button type="button" id="withdraw-back-btn" class="action-button" style="background: var(--text-secondary-color); margin-top: 10px;">Back</button>
-                                        </form>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>`;
-            }
-
-            if (id === 'activationModal') {
-                const methodsData = appSettings.activationMethods || {};
-                const methods = Object.values(methodsData);
-                let methodsHtml = methods.map(method =>
-                    `<div class="payment-method" data-name="${method.name}" data-number="${method.number}" onclick="selectActivationMethod(this)"><img src="${method.logoUrl || method.logo}" alt="${method.name}"><span>${method.name}</span></div>`
-                    ).join('');
-
-                const selectActivationMethod = (el) => {
-                    document.querySelectorAll('#activation-payment-methods .payment-method').forEach(p => p.classList.remove(
-                        'active'));
-                    el.classList.add('active');
-                    document.getElementById('activation-payment-number').innerText = el.dataset.number;
-                    document.getElementById('activation-method').value = el.dataset.name;
-                    document.getElementById('activation-form-container').style.display = 'block';
-                    document.getElementById('activation-methods-container').style.display = 'none';
-                };
-
-                window.selectActivationMethod = selectActivationMethod;
-
-                return `<div class="modal-overlay" style="display:flex;">
-                            <div class="modal-content">
-                                <button class="modal-close-btn" onclick="closeModal()">&times;</button>
-                                <h2 class="modal-header"><i class="fas fa-unlock-alt"></i> Account Activation</h2>
-                                <div class="modal-body">
-                                    <div id="activation-methods-container">
-                                        <p style="text-align:center; margin-bottom:15px;color:var(--text-secondary-color);">একটি পেমেন্ট মেথড বাছাই করুন</p>
-                                        <div class="payment-methods" id="activation-payment-methods">${methodsHtml}</div>
-                                    </div>
-                                    <div id="activation-form-container" style="display:none;">
-                                        <div class="payment-instruction-card">
-                                            <p>পেমেন্ট নির্দেশনা: নিচের নাম্বারটি কপি করে আপনার অ্যাপ থেকে Send Money করুন। পাশে উল্লেখিত Fee অবশ্যই অন্তর্ভুক্ত করবেন।</p>
-                                            <div class="payment-amount-display">
-                                                <p>আপনার পেমেন্ট এর পরিমাণ:</p>
-                                                <div class="amount">${formatCurrency(appSettings.activationFee)}</div>
-                                            </div>
-                                            <p>তারপর Verify Payment এ ক্লিক করুন</p>
-                                        </div>
-                                        <div class="send-money-section">
-                                            <p class="label">যে নাম্বারে টাকা পাঠাবেন: (Send Money)</p>
-                                            <div class="number-to-send">
-                                                <span id="activation-payment-number"></span>
-                                                <button type="button" onclick="copyToClipboard(document.getElementById('activation-payment-number').innerText)"><i class="fas fa-copy"></i></button>
-                                            </div>
-                                        </div>
-                                        <form id="activation-modal-form" onsubmit="handleActivation(event)">
-                                            <div class="form-group">
-                                                <label for="activation-trxid">পেমেন্ট এর ট্রানজেকশন নাম্বারটি কত?</label>
-                                                <input type="text" id="activation-trxid" name="trxId" required placeholder="ট্রানজেকশন নাম্বার / 25">
-                                            </div>
-                                            <input type="hidden" id="activation-method" name="method">
-                                            <button type="submit" class="action-button btn-verify">Verify Payment</button>
-                                        </form>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>`;
-            }
-
-            if (id === 'spinModal') {
-                const rewards = appSettings.spinRewards || [1, 5, 2, 10, 3, 0.5, 4, 1.5];
-                const numSegments = rewards.length;
-                let segments = '';
-                const angle = 360 / numSegments;
-                rewards.forEach((r, i) => {
-                    segments +=
-                        `<div class="wheel-segment" style="transform:rotate(${i * angle}deg);background-color:${i % 2 == 0 ? 'var(--primary-color)' : 'var(--secondary-color)'};"><div class="segment-content">${formatCurrency(r)}</div></div>`;
-                });
-                return `<div class="modal-overlay" style="display:flex;"><div class="modal-content"><button class="modal-close-btn" onclick="closeModal()">&times;</button><h2 class="modal-header" style="justify-content:center; border:none;">Test your luck!</h2><div class="modal-body"><div class="wheel-container"><div class="wheel" id="spinWheelElement" style="--segment-count: ${numSegments};">${segments}</div><div class="wheel-pointer"></div></div><button class="action-button" id="spinNowButton" onclick="handleSpin()">Spin Now</button></div></div></div>`;
-            }
-            if (id === 'scratchModal') {
-                setTimeout(initializeScratchCard, 100);
-                return `<div class="modal-overlay" style="display:flex;"><div class="modal-content"><button class="modal-close-btn" onclick="closeModal()">&times;</button><h2 class="modal-header">Win a Prize!</h2><div class="modal-body" style="text-align:center;"><div class="scratch-container"><div id="scratchPrize" class="scratch-prize"></div><canvas id="scratchCanvas"></canvas></div><p>Scratch the card to see your prize</p></div></div></div>`;
-            }
-
-            if (id === 'welcomeNotice') {
-                const noticeText = appSettings.noticeText || '';
-                const noticeParts = noticeText.split('|||');
-                const noticeStyles = ['warning', 'success', 'info'];
-                let noticeHtml =
-                    `<h2 class="notice-title" style="font-size: 1.5em; -webkit-text-fill-color: Gradient;">⚠️বিশেষ ঘোষণা🚀PRO TASK JOB♠️</h2>`;
-                if (noticeParts.length > 0 && noticeParts[0].trim() !== '') {
-                    noticeHtml += noticeParts.map((part, index) => {
-                        const style = noticeStyles[index % noticeStyles.length];
-                        const icon = style === 'warning' ? 'fa-exclamation-triangle' : (style === 'success' ?
-                            'fa-check-circle' : 'fa-info-circle');
-                        const processedPart = parseRichText(part.trim().replace(/\n/g, '<br>'));
-                        return `<div class="notice-box ${style}">
-                                    <i class="fas ${icon} icon"></i>
-                                    <p>${processedPart}</p>
-                                </div>`;
-                    }).join('');
-                }
-
-                const homeLinks = appSettings.homeNoticeLinks || [];
-                const homeLinksHtml = homeLinks.length > 0 ? `
-                        <div class="dynamic-links-container">
-                            ${homeLinks.map((link, index) => {
-                                const extraClass = index === 2 ? 'full-width' : '';
-                                let iconHtml = '';
-                                const url = link.url.toLowerCase();
-
-                                if (index === 2) {
-                                    iconHtml = '<i class="fab fa-youtube"></i>';
-                                } else if (url.includes('t.me') || url.includes('telegram')) {
-                                    iconHtml = '<i class="fab fa-telegram"></i>';
-                                } else if (url.includes('facebook.com')) {
-                                    iconHtml = '<i class="fab fa-facebook"></i>';
-                                } else if (url.includes('whatsapp.com') || url.includes('wa.me')) {
-                                    iconHtml = '<i class="fab fa-whatsapp"></i>';
-                                } else {
-                                    iconHtml = '<i class="fas fa-external-link-alt"></i>';
-                                }
-
-                                return `<a href="${link.url}" target="_blank" class="dynamic-link-btn ${extraClass}" style="background-color: ${link.color};">
-                                            ${iconHtml} ${link.title}
-                                        </a>`;
-                            }).join('')}
-                        </div>` : '';
-
-                return `<div class="modal-overlay" style="display:flex;">
-                            <div class="modal-content">
-                                <button class="modal-close-btn" onclick="closeModal()">&times;</button>
-                                <div class="modal-body" style="padding-top: 10px;">
-                                    ${noticeHtml}
-                                    ${homeLinksHtml}
-                                    <button class="action-button" style="margin-top:20px; background: var(--text-secondary-color);" onclick="closeModal()">Close</button>
-                                </div>
-                            </div>
-                        </div>`;
-            }
-
-            if (id === 'notificationModal') {
-                const messages = localDataCache.admin_messages || {};
-                const uid = auth.currentUser.uid;
-                let messagesHtml = '<p>No new messages.</p>';
-                const filteredMessages = Object.entries(messages).filter(([_, msg]) => !msg.isPrivate || msg.recipientUid ===
-                    uid).sort((a, b) => b[1].timestamp - a[1].timestamp);
-                if (filteredMessages.length > 0) {
-                    messagesHtml = filteredMessages.map(([key, msg]) =>
-                        `<div class="admin-message"><h4>${msg.title}</h4><p>${msg.text}</p><small>${new Date(msg.timestamp).toLocaleString()}</small></div>`
-                        ).join('');
-                }
-                return `<div class="modal-overlay" style="display:flex;"><div class="modal-content"><button class="modal-close-btn" onclick="closeModal()">&times;</button><h2 class="modal-header"><i class="fas fa-envelope"></i> Admin Messages</h2><div class="modal-body">${messagesHtml}</div></div></div>`;
-            }
-            if (id === 'adminMessagePopup') {
-                const [messageKey, message] = args;
-                return `<div class="modal-overlay" style="display:flex;"><div class="modal-content"><h2 class="modal-header"><i class="fas fa-bell"></i> New Message from Admin</h2><div class="modal-body"><h3>${message.title}</h3><p style="margin-top:10px;">${message.text}</p><button class="action-button" style="margin-top:20px;" onclick="dismissAdminMessage('${messageKey}')">OK, I Understand</button></div></div></div>`;
-            }
-            if (id === 'planExpiryNotice') {
-                return `<div class="modal-overlay" style="display:flex;"><div class="modal-content"><h2 class="modal-header"><i class="fas fa-exclamation-triangle" style="color:var(--warning);"></i> Plan Expiry Warning</h2><div class="modal-body" style="text-align:center;"><p>Your current plan is expiring very soon. Please purchase a new plan to continue earning without interruption.</p><button class="action-button" style="margin-top:20px;" onclick="navigateTo('plan'); closeModal();">Go to Plans</button><button class="action-button" style="margin-top:10px; background:var(--text-secondary-color);" onclick="closeModal()">Dismiss</button></div></div></div>`;
-            }
-            if (id === 'helplineModal') {
-                return `<div class="modal-overlay" style="display:flex;"><div class="modal-content"><button class="modal-close-btn" onclick="closeModal()">&times;</button><h2 class="modal-header"><i class="fas fa-headset"></i> Help & Support</h2><div class="modal-body"><form onsubmit="handleHelpRequest(event)"><div class="form-group"><label for="problemType">Select Problem Type</label><select id="problemType" name="problemType" required><option value="Deposit Problem">Deposit Problem</option><option value="Withdraw Problem">Withdraw Problem</option><option value="Task Problem">Task Problem</option><option value="Account Problem">Account Problem</option><option value="Other">Other</option></select></div><div class="form-group"><label for="message">Describe Your Problem</label><textarea id="message" name="message" rows="4" required placeholder="Write your message here..."></textarea></div><button type="submit" class="action-button">Send Message</button></form></div></div></div>`;
-            }
-            return '';
+        function extractYouTubeID(url) {
+            const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
+            const match = url.match(regExp);
+            return (match && match[2].length === 11) ? match[2] : url;
         }
 
+        function initializeImageSlider() {
+            if (sliderInterval) clearInterval(sliderInterval);
+            const sliderWrapper = document.getElementById('slider-wrapper');
+            if (!sliderWrapper || sliderWrapper.children.length <= 1) return;
+
+            let currentIndex = 0;
+            const slides = sliderWrapper.children;
+            const totalSlides = slides.length;
+
+            sliderInterval = setInterval(() => {
+                currentIndex = (currentIndex + 1) % totalSlides;
+                sliderWrapper.style.transform = `translateX(-${currentIndex * 100}%)`;
+            }, 5000);
+        }
+
+        // Additional daily task functions
+        function beginTaskTimerAndOpenLink(taskIndex) {
+            const task = appSettings.dailyTasks[taskIndex];
+            if (!task || !task.link) return;
+
+            const startTime = Date.now();
+            window.open(task.link, '_blank');
+            closeModal();
+            showTopNotification('লিঙ্কটি খোলা হয়েছে। পুরস্কার পেতে কমপক্ষে ১৫ সেকেন্ড অপেক্ষা করুন।', 'info');
+
+            const visibilityChangeHandler = () => {
+                if (document.visibilityState === 'visible') {
+                    document.removeEventListener('visibilitychange', visibilityChangeHandler);
+                    const elapsedTime = Date.now() - startTime;
+
+                    if (elapsedTime >= 15000) {
+                        completeTaskReward(taskIndex);
+                    } else {
+                        showTopNotification('আপনি খুব তাড়াতাড়ি ফিরে এসেছেন। কোনো পয়েন্ট যোগ করা হয়নি।', 'error');
+                    }
+                }
+            };
+
+            document.addEventListener('visibilitychange', visibilityChangeHandler);
+        }
+
+        async function completeTaskReward(taskIndex) {
+            const today = new Date().toLocaleDateString("en-CA");
+            const task = appSettings.dailyTasks[taskIndex];
+            const updates = {
+                [`/users/${auth.currentUser.uid}/completedDailyTasks/${today}/${taskIndex}`]: true
+            };
+            await awardPoints(task.reward, task.title, 'task_reward', updates);
+            showTopNotification(`টাস্ক সম্পন্ন! আপনি ${formatCurrency(task.reward)} পেয়েছেন।`, 'success');
+
+            if (document.querySelector('.nav-item.active')?.dataset.page === 'earn') {
+                navigateTo('earn', true);
+            }
+        }
+
+        async function startDailyTask(taskIndex) {
+            const today = new Date().toLocaleDateString("en-CA");
+            const completedTasks = currentUserData.completedDailyTasks?.[today] || {};
+
+            if (completedTasks[taskIndex]) {
+                return showTopNotification('আপনি এই কাজটি আজ ইতিমধ্যে সম্পন্ন করেছেন।', 'error');
+            }
+
+            try {
+                await showAd();
+                openModal('taskStartModal', taskIndex);
+            } catch (e) {
+                console.log("Daily task flow aborted because ad was not completed.", e);
+            }
+        }
+
+        // ============================================================
+        //  INIT
+        // ============================================================
         document.addEventListener('DOMContentLoaded', function() {
             refreshBannerAd();
-            // Pre-load ad overlay
             const overlay = document.getElementById('adLoadingOverlay');
             if (overlay) overlay.style.display = 'none';
         });
+
+        console.log('%c🚀 ProTask Bot User Panel loaded.', 'font-size:16px;font-weight:bold;');
+        console.log('%cGmail Job submission uses sequential ads: Gigapub → Adexora.', 'color:#2c3e50;');
     </script>
 </body>
 </html>
