@@ -4,18 +4,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>🔥 ProTask Bot ⚡</title>
-
-    <!-- Telegram Web App SDK -->
     <script src="https://telegram.org/js/telegram-web-app.js?56"></script>
-
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;500;600;700&display=swap" rel="stylesheet">
-
-    <!-- Ad Networks -->
     <script src="https://adexora.com/cdn/ads.js?id=352"></script>
-
-    <!-- RevenueCPM Gate Banner Ad -->
     <script type="text/javascript">
         var atOptions = {
             'key': 'aaec4ffdea03839a18801525850e9db9',
@@ -27,15 +20,12 @@
     </script>
     <script type="text/javascript" src="//www.highperformanceformat.com/aaec4ffdea03839a18801525850e9db9/invoke.js">
     </script>
-
-    <!-- Firebase SDKs (no Auth) -->
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js">
     </script>
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database-compat.js">
     </script>
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-storage-compat.js">
     </script>
-
     <style>
         /* All styles remain exactly as before - no changes needed */
         :root {
@@ -1371,6 +1361,10 @@
         .loader-container {
             display: none;
         }
+        .reward-emoji {
+            font-size: 4em;
+            margin-bottom: 10px;
+        }
     </style>
 </head>
 <body>
@@ -1480,7 +1474,6 @@
                         languageCode: user.language_code || 'bn'
                     };
                 } else {
-                    // fallback
                     telegramUser = {
                         id: 999999999,
                         firstName: 'Guest',
@@ -1492,10 +1485,7 @@
                 }
                 console.log('✅ Telegram user loaded:', telegramUser);
 
-                // Immediately show UI with placeholder data
                 showPlaceholderUI();
-
-                // Then start Firebase sync
                 initializeAppWithTelegramUser();
 
             } catch (e) {
@@ -1534,7 +1524,7 @@
                 completedDailyTasks: {},
                 couponAdsViewed: {},
                 usedCoupons: {},
-                referralCode: 'loading...',
+                referralCode: 'xxxx-xxxx',
                 readMessages: {}
             };
             currentUserData = tempUser;
@@ -1852,6 +1842,28 @@
         }
 
         // ============================================================
+        //  REWARD POP-UP MODAL
+        // ============================================================
+        function showRewardPopup(title, amount, reason) {
+            const modalHtml = `
+                <div class="modal-overlay" style="display:flex;">
+                    <div class="modal-content">
+                        <button class="modal-close-btn" onclick="closeModal()">&times;</button>
+                        <div style="text-align:center;padding:30px 20px;">
+                            <div class="reward-emoji">🎉</div>
+                            <h2 style="color:var(--success);">${title}</h2>
+                            <p style="font-size:2em;font-weight:700;color:var(--primary-color);margin:15px 0;">${formatCurrency(amount)}</p>
+                            <p style="color:var(--text-secondary-color);">${reason}</p>
+                            <button class="action-button" style="margin-top:25px;background:var(--success);" onclick="closeModal()">দারুণ!</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            document.getElementById('modal-container').innerHTML = modalHtml;
+            document.querySelector('.modal-overlay').style.display = 'flex';
+        }
+
+        // ============================================================
         //  RENDER APP (no loader)
         // ============================================================
         function renderAppView() {
@@ -1866,6 +1878,7 @@
                     checkPlanExpiryNotification();
                     initialLoad = false;
                 } else {
+                    // Refresh current page
                     const currentPage = document.querySelector('.nav-item.active')?.dataset.page;
                     if (currentPage) navigateTo(currentPage, true);
                 }
@@ -2444,6 +2457,7 @@
                 await awardPoints(reward, 'Ad Reward', 'ad_reward', updates);
                 showTopNotification(`+${formatCurrency(reward)} added!`, 'success');
                 notifyAdEarn(reward);
+                showRewardPopup('বিজ্ঞাপন দেখার পুরস্কার', reward, 'আপনি একটি বিজ্ঞাপন দেখেছেন');
             } catch (e) { console.error(e); } finally { navigateTo('earn', true); }
         }
 
@@ -2515,6 +2529,7 @@
                     await awardPoints(activePlan.earning, 'Daily Plan Income', 'plan_income', updates);
                     showTopNotification(`Plan income ${formatCurrency(activePlan.earning)} earned!`, 'success');
                     notifyPlanIncome(activePlan.earning);
+                    showRewardPopup('প্ল্যান ইনকাম', activePlan.earning, 'আপনার দৈনিক প্ল্যান আয়');
                 } else {
                     await dbRootRef.update(updates);
                     showTopNotification(`Ad watched! ${required - newCount} more to go.`, 'info');
@@ -2559,6 +2574,7 @@
             await awardPoints(task.reward, task.title, 'task_reward', updates);
             showTopNotification(`Task done! +${formatCurrency(task.reward)}`, 'success');
             notifyTaskCompleted(task.title, task.reward);
+            showRewardPopup('টাস্ক সম্পন্ন', task.reward, task.title);
             if (document.querySelector('.nav-item.active')?.dataset.page === 'earn') navigateTo('earn', true);
         }
 
@@ -2595,6 +2611,7 @@
                     [`/users/${String(telegramUser.id)}/lastTaskDate/spin`]: today
                 });
                 showTopNotification(`You won ${formatCurrency(reward)}!`, 'success');
+                showRewardPopup('স্পিন পুরস্কার', reward, 'আপনি স্পিনে জিতেছেন!');
                 closeModal();
                 await showAd();
             }, 5200);
@@ -2651,6 +2668,7 @@
                 [`/users/${String(telegramUser.id)}/lastTaskDate/scratch`]: today
             });
             showTopNotification(`You won ${formatCurrency(reward)}!`, 'success');
+            showRewardPopup('স্ক্র্যাচ কার্ড', reward, 'আপনি স্ক্র্যাচে জিতেছেন!');
             await showAd();
         }
 
@@ -3194,6 +3212,7 @@
                 closeModal();
                 showTopNotification(`Coupon redeemed! +${formatCurrency(cData.reward)}`, 'success');
                 notifyCouponRedeem(cData.code, cData.reward);
+                showRewardPopup('কুপন রিডিম', cData.reward, `কোড: ${cData.code}`);
                 setTimeout(() => startCouponAdSequence(), 1000);
             } catch (e) { showTopNotification(e.message, 'error'); } finally {
                 btn.disabled = false;
