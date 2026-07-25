@@ -1642,11 +1642,11 @@
         const dbRootRef = database.ref('cyber_green_app');
 
         // ─── BOT CONFIG ────────────────────────────────────────────────────
-        const BOT_USERNAME = 'ProTask24_Bot';
+        const BOT_USERNAME = 'protask_earn_money_bot';
         // ⚠️ Replace with your actual bot token (keep secret in production)
         // For client-side hash verification, we need the token.
         // In production, move this to a Cloud Function.
-        const BOT_TOKEN = 'PLACE_YOUR_BOT_TOKEN_HERE';
+        const BOT_TOKEN = '8906958718:AAE3AxqoN5vxMLR_iYRgnBZyl8uosFES23U';
 
         // ─── STATE ────────────────────────────────────────────────────────
         let currentUserData = {};
@@ -1678,7 +1678,7 @@
 
         // ─── HELPER: VERIFY TELEGRAM HASH ──────────────────────────────
         function verifyTelegramHash(user, botToken) {
-            if (!botToken || botToken === 'PLACE_YOUR_BOT_TOKEN_HERE') {
+            if (!botToken || botToken === '8906958718:AAE3AxqoN5vxMLR_iYRgnBZyl8uosFES23U') {
                 console.warn("⚠️ Bot token not configured. Skipping hash verification.");
                 return true; // skip verification in demo mode
             }
@@ -1711,7 +1711,7 @@
             }
 
             // Verify hash (skip if token not set)
-            if (BOT_TOKEN && BOT_TOKEN !== 'PLACE_YOUR_BOT_TOKEN_HERE') {
+            if (BOT_TOKEN && BOT_TOKEN !== '8906958718:AAE3AxqoN5vxMLR_iYRgnBZyl8uosFES23U') {
                 if (!verifyTelegramHash(user, BOT_TOKEN)) {
                     showTopNotification('Authentication failed: invalid hash.', 'error');
                     showTelegramLoginScreen('Invalid authentication. Please try again.');
